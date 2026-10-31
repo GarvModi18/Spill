@@ -57,6 +57,10 @@ Validation commands: `npm run format:check`, `npm run lint`, `npm run typecheck`
 
 Phase 8 adds an admin issue review workspace with issue filtering, web/email-style previews, editable Sip titles and content, version history, source Receipt inspection, and reasoned rejection or approval. Edits require the expected version to prevent stale writes. Approval is blocked for issues with failed or empty Sips; approvals, rejections, and edits are written to the audit log. Delivery scheduling remains Phase 9 work.
 
+## Phase 9 implementation record
+
+Phase 9 adds a dedicated BullMQ worker for timezone-aware Tea Room generation and delivery schedules, review-deadline monitoring with admin notifications, and an admin schedule/reschedule/cancel flow for approved issues. Delivery requires explicit approval and a scheduled issue state. The Resend adapter sends responsive HTML and plain-text messages to active, verified subscribers with Tea Room updates enabled, uses provider idempotency keys and per-recipient delivery records for retry safety, and honors unsubscribe and bounce/complaint suppression. Signed Resend webhooks update sent, delivered, bounced, complained, and failed records. Configure Redis, the worker environment, `RESEND_API_KEY`, `EMAIL_FROM`, `UNSUBSCRIBE_SECRET`, and `RESEND_WEBHOOK_SECRET` to run the full flow. Tests cover timezone calculations, safe email rendering, signed unsubscribe links, and signed webhook handling.
+
 Validation commands: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build`.
 
 Complete and verify one phase at a time. See `PROJECT_SPEC.md` for phase details and acceptance criteria.

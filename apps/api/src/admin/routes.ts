@@ -21,6 +21,8 @@ import type { GenerationGraph } from "@spill/ai";
 import type { GenerationStore } from "../generation/types.js";
 import { createIssueRouter } from "../issues/routes.js";
 import type { IssueStore } from "../issues/types.js";
+import type { Queue } from "bullmq";
+import type { DeliveryJob } from "../delivery/queue.js";
 
 function respondToError(
   error: unknown,
@@ -55,6 +57,7 @@ export function createAdminRouter(
   generationGraph: GenerationGraph | null = null,
   generationStore: GenerationStore | null = null,
   issueStore: IssueStore | null = null,
+  deliveryQueue: Queue<DeliveryJob> | null = null,
 ) {
   const router = Router();
   router.use(authenticate(authStore), requireRole("admin"));
@@ -68,7 +71,7 @@ export function createAdminRouter(
   if (generationStore) {
     router.use("/generation", createGenerationRouter(store, generationStore, generationGraph));
   }
-  if (issueStore) router.use("/issues", createIssueRouter(issueStore));
+  if (issueStore) router.use("/issues", createIssueRouter(issueStore, deliveryQueue));
 
   router.get("/dashboard", async (_request, response, next) => {
     try {

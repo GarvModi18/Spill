@@ -42,7 +42,7 @@ scripts/        Development and maintenance scripts
 4. Install the workspace dependencies with `npm ci`.
 5. Use the Phase 1 foundation and follow the next development phase in `PROJECT_SPEC.md` when you are ready to continue.
 
-The repository includes Phases 1–4 and the Phase 5 Tea Concierge configuration workflow. The Concierge drafts Tea Room and Sip proposals and saves them only after explicit admin confirmation. Later research, generation, issue editing, and delivery phases are not included. Configure `GROQ_API_KEY` and `GROQ_MODEL` to enable live Concierge responses; tests use mock models.
+The repository implements Phases 1–9: Tea Room and Sip management, the Tea Concierge workflow, research and issue generation, admin review, and scheduled email delivery. Configure the API and worker environments as described in `.env.example`; live AI generation requires `GROQ_API_KEY` and `GROQ_MODEL`, and email delivery requires `RESEND_API_KEY`, `EMAIL_FROM`, and an `UNSUBSCRIBE_SECRET`. The worker requires Redis and runs independently from the API.
 
 ## Development
 

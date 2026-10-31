@@ -23,6 +23,12 @@ import type { GenerationGraph } from "@spill/ai";
 import type { GenerationStore } from "./generation/types.js";
 import { MongoIssueStore } from "./issues/mongo-store.js";
 import type { IssueStore } from "./issues/types.js";
+import type { Queue } from "bullmq";
+import type { DeliveryJob } from "./delivery/queue.js";
+import { MongoEmailDeliveryStore } from "./delivery/mongo-store.js";
+import type { EmailDeliveryStore } from "./delivery/types.js";
+import { createUnsubscribeRouter, createResendWebhookRouter } from "./delivery/routes.js";
+import { ResendEmailSender } from "@spill/shared/email";
 
 const logger = createLogger("api");
 
@@ -39,6 +45,8 @@ export function createApp(
   generationGraph?: GenerationGraph | null,
   generationStore?: GenerationStore,
   issueStore?: IssueStore,
+  deliveryQueue?: Queue<DeliveryJob> | null,
+  emailDeliveryStore?: EmailDeliveryStore,
 ): Express {
   const app = express();
   app.disable("x-powered-by");
@@ -48,10 +56,23 @@ export function createApp(
       credentials: true,
     }),
   );
-  app.use(express.json({ limit: "1mb" }));
+  app.use(
+    express.json({
+      limit: "1mb",
+      verify: (request, _response, buffer) => {
+        request.rawBody = Buffer.from(buffer);
+      },
+    }),
+  );
+  app.use(express.urlencoded({ extended: false, limit: "10kb" }));
 
   const resolvedAuthStore = authStore ?? (database ? new MongoAuthStore(database.db()) : null);
-  if (resolvedAuthStore) app.use("/api/v1", createAuthRouter(resolvedAuthStore, environment));
+  const emailSender =
+    environment.RESEND_API_KEY && environment.EMAIL_FROM
+      ? new ResendEmailSender(environment.RESEND_API_KEY, environment.EMAIL_FROM)
+      : null;
+  if (resolvedAuthStore)
+    app.use("/api/v1", createAuthRouter(resolvedAuthStore, environment, emailSender));
   const resolvedReaderStore =
     readerStore ?? (database ? new MongoReaderStore(database.db()) : null);
   if (resolvedReaderStore && resolvedAuthStore) {
@@ -65,6 +86,15 @@ export function createApp(
   const resolvedGenerationStore =
     generationStore ?? (database ? new MongoGenerationStore(database.db()) : null);
   const resolvedIssueStore = issueStore ?? (database ? new MongoIssueStore(database.db()) : null);
+  const resolvedEmailDeliveryStore =
+    emailDeliveryStore ?? (database ? new MongoEmailDeliveryStore(database.db()) : null);
+  if (resolvedReaderStore)
+    app.use("/api/v1/unsubscribe", createUnsubscribeRouter(resolvedReaderStore, environment));
+  if (resolvedEmailDeliveryStore)
+    app.use(
+      "/api/v1/webhooks/resend",
+      createResendWebhookRouter(resolvedEmailDeliveryStore, environment),
+    );
   if (resolvedAdminStore && resolvedAuthStore) {
     app.use(
       "/api/v1/admin",
@@ -78,6 +108,7 @@ export function createApp(
         generationGraph ?? null,
         resolvedGenerationStore,
         resolvedIssueStore,
+        deliveryQueue ?? null,
       ),
     );
   }

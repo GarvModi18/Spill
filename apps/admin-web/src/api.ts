@@ -124,6 +124,7 @@ export interface IssueSummary {
   updatedAt: string;
   sipCount: number;
   failedSipCount: number;
+  scheduledAt?: string;
 }
 export interface IssueReceipt {
   url: string;
@@ -160,5 +161,6 @@ export interface IssueDetail extends IssueSummary {
   sips: IssueSip[];
   approvedAt?: string;
   rejectedAt?: string;
+  scheduledAt?: string;
   rejectionReason?: string;
 }

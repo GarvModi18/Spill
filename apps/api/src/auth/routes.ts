@@ -12,6 +12,7 @@ import {
   SESSION_COOKIE,
 } from "./middleware.js";
 import type { AuthStore, AuthUser } from "./types.js";
+import type { EmailSender } from "@spill/shared/email";
 
 const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 7;
 const logger = createLogger("auth");
@@ -47,7 +48,11 @@ function publicUser(user: AuthUser) {
   };
 }
 
-export function createAuthRouter(store: AuthStore, environment: Environment) {
+export function createAuthRouter(
+  store: AuthStore,
+  environment: Environment,
+  emailSender: EmailSender | null = null,
+) {
   const router = Router();
   const limitAuthenticationAttempts = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -74,6 +79,32 @@ export function createAuthRouter(store: AuthStore, environment: Environment) {
         emailPreferences: { teaUpdates: true, productUpdates: false },
         createdAt: now,
       });
+      let emailVerificationSent = false;
+      if (store.createEmailVerification && emailSender) {
+        const verificationToken = randomBytes(32).toString("base64url");
+        const verifyUrl = new URL("/api/v1/auth/verify-email", environment.API_URL);
+        verifyUrl.searchParams.set("token", verificationToken);
+        await store.createEmailVerification(
+          user.id,
+          hashSessionToken(verificationToken),
+          new Date(Date.now() + 86_400_000),
+        );
+        try {
+          await emailSender.send({
+            to: user.email,
+            subject: "Verify your Spill email",
+            html: `<p>Confirm this email address to receive Tea deliveries.</p><p><a href="${verifyUrl.toString()}">Verify email</a></p>`,
+            text: `Confirm this email address to receive Tea deliveries: ${verifyUrl.toString()}`,
+            idempotencyKey: `verify-${user.id}`,
+          });
+          emailVerificationSent = true;
+        } catch (error) {
+          logger.warn("Could not send email verification", {
+            userId: user.id,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
       const token = randomBytes(32).toString("base64url");
       await store.createSession(
         hashSessionToken(token),
@@ -81,12 +112,33 @@ export function createAuthRouter(store: AuthStore, environment: Environment) {
         new Date(Date.now() + SESSION_DURATION_MS),
       );
       setSessionCookie(response, token, environment);
-      response.status(201).json({ user: publicUser(user) });
+      response.status(201).json({ user: publicUser(user), emailVerificationSent });
     } catch (error) {
       if (typeof error === "object" && error !== null && "code" in error && error.code === 11000) {
         response.status(409).json({ error: "An account with this email already exists" });
         return;
       }
+      next(error);
+    }
+  });
+
+  router.get("/auth/verify-email", async (request, response, next) => {
+    const token = typeof request.query.token === "string" ? request.query.token : "";
+    if (!token || !store.verifyEmail) {
+      response.status(400).json({ error: "Invalid or expired verification link" });
+      return;
+    }
+    try {
+      const verified = await store.verifyEmail(hashSessionToken(token));
+      if (!verified) {
+        response.status(400).json({ error: "Invalid or expired verification link" });
+        return;
+      }
+      response.status(200).json({
+        status: "verified",
+        message: "Email address verified. You can receive Tea deliveries.",
+      });
+    } catch (error) {
       next(error);
     }
   });

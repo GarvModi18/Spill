@@ -10,9 +10,16 @@ interface UserDocument {
   role: UserRole;
   emailPreferences?: EmailPreferences;
   createdAt: Date;
+  emailVerified?: boolean;
 }
 
 interface SessionDocument {
+  _id: string;
+  userId: ObjectId;
+  expiresAt: Date;
+  createdAt: Date;
+}
+interface EmailVerificationDocument {
   _id: string;
   userId: ObjectId;
   expiresAt: Date;
@@ -44,11 +51,14 @@ export class MongoAuthStore implements AuthStore {
         .collection<SessionDocument>("sessions")
         .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
       this.database.collection<SessionDocument>("sessions").createIndex({ userId: 1 }),
+      this.database
+        .collection<EmailVerificationDocument>("emailVerifications")
+        .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
     ]);
   }
 
   async createUser(user: Omit<StoredUser, "id">): Promise<AuthUser> {
-    const document: UserDocument = { ...user, _id: new ObjectId() };
+    const document: UserDocument = { ...user, emailVerified: false, _id: new ObjectId() };
     await this.database.collection<UserDocument>("users").insertOne(document);
     return publicUser(document);
   }
@@ -111,5 +121,27 @@ export class MongoAuthStore implements AuthStore {
         { returnDocument: "after", includeResultMetadata: false },
       );
     return user ? publicUser(user) : null;
+  }
+
+  async createEmailVerification(userId: string, tokenHash: string, expiresAt: Date): Promise<void> {
+    await this.database.collection<EmailVerificationDocument>("emailVerifications").insertOne({
+      _id: tokenHash,
+      userId: new ObjectId(userId),
+      expiresAt,
+      createdAt: new Date(),
+    });
+  }
+
+  async verifyEmail(tokenHash: string): Promise<boolean> {
+    const collection = this.database.collection<EmailVerificationDocument>("emailVerifications");
+    const token = await collection.findOneAndDelete(
+      { _id: tokenHash, expiresAt: { $gt: new Date() } },
+      { includeResultMetadata: false },
+    );
+    if (!token) return false;
+    const updated = await this.database
+      .collection<UserDocument>("users")
+      .updateOne({ _id: token.userId }, { $set: { emailVerified: true, updatedAt: new Date() } });
+    return updated.modifiedCount === 1;
   }
 }

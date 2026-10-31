@@ -219,6 +219,7 @@ function IssuesPage() {
           Status
           <select value={status} onChange={(event) => setStatus(event.target.value)}>
             <option value="review">Awaiting review</option>
+            <option value="review_missed">Review deadline missed</option>
             <option value="partial">Partial</option>
             <option value="approved">Approved</option>
             <option value="rejected">Rejected</option>
@@ -290,6 +291,7 @@ function IssueEditorPage() {
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [scheduledLocal, setScheduledLocal] = useState("");
   async function refresh() {
     if (!id) return;
     const result = await api<{ issue: IssueDetail }>(`/admin/issues/${id}`);
@@ -299,6 +301,7 @@ function IssueEditorPage() {
         result.issue.sips.map((sip) => [sip.id, { title: sip.title, content: sip.content }]),
       ),
     );
+    if (result.issue.scheduledAt) setScheduledLocal(toLocalDateTimeInput(result.issue.scheduledAt));
   }
   useEffect(() => {
     void refresh().catch((reason: unknown) => setError(messageOf(reason)));
@@ -352,6 +355,41 @@ function IssueEditorPage() {
       setBusy("");
     }
   }
+  async function scheduleDelivery() {
+    if (!id || !scheduledLocal) return;
+    setBusy("schedule");
+    setError("");
+    setNotice("");
+    try {
+      const result = await api<{ issue: IssueDetail }>(`/admin/issues/${id}/schedule`, {
+        method: "POST",
+        body: JSON.stringify({ scheduledAt: new Date(scheduledLocal).toISOString() }),
+      });
+      setIssue(result.issue);
+      setNotice("Delivery scheduled.");
+    } catch (reason) {
+      setError(messageOf(reason));
+    } finally {
+      setBusy("");
+    }
+  }
+  async function cancelDelivery() {
+    if (!id || !window.confirm("Cancel this scheduled delivery?")) return;
+    setBusy("cancel");
+    setError("");
+    setNotice("");
+    try {
+      const result = await api<{ issue: IssueDetail }>(`/admin/issues/${id}/cancel`, {
+        method: "POST",
+      });
+      setIssue(result.issue);
+      setNotice("Scheduled delivery cancelled.");
+    } catch (reason) {
+      setError(messageOf(reason));
+    } finally {
+      setBusy("");
+    }
+  }
   if (!issue)
     return (
       <div className="page-content">
@@ -365,7 +403,8 @@ function IssueEditorPage() {
         </button>
       </div>
     );
-  const editable = issue.status === "review" || issue.status === "partial";
+  const editable =
+    issue.status === "review" || issue.status === "partial" || issue.status === "review_missed";
   return (
     <div className="page-content editor-page">
       <div className="editor-breadcrumb">
@@ -390,6 +429,45 @@ function IssueEditorPage() {
       {issue.status === "rejected" && issue.rejectionReason && (
         <InlineNotice tone="error">Rejection reason: {issue.rejectionReason}</InlineNotice>
       )}
+      {issue.status === "approved" || issue.status === "scheduled" ? (
+        <section className="panel-card delivery-schedule">
+          <p className="eyebrow">SERVING</p>
+          <h2>{issue.status === "scheduled" ? "Delivery scheduled" : "Schedule delivery"}</h2>
+          {issue.scheduledAt && (
+            <p>Current delivery time: {new Date(issue.scheduledAt).toLocaleString()}</p>
+          )}
+          <label className="field-label">
+            Delivery date and time
+            <input
+              type="datetime-local"
+              value={scheduledLocal}
+              onChange={(event) => setScheduledLocal(event.target.value)}
+            />
+          </label>
+          <div className="toolbar-actions">
+            {issue.status === "scheduled" && (
+              <button
+                className="admin-button danger-quiet"
+                disabled={Boolean(busy)}
+                onClick={() => void cancelDelivery()}
+              >
+                {busy === "cancel" ? "Cancelling…" : "Cancel delivery"}
+              </button>
+            )}
+            <button
+              className="admin-button primary"
+              disabled={Boolean(busy) || !scheduledLocal}
+              onClick={() => void scheduleDelivery()}
+            >
+              {busy === "schedule"
+                ? "Scheduling…"
+                : issue.status === "scheduled"
+                  ? "Reschedule delivery"
+                  : "Schedule delivery"}
+            </button>
+          </div>
+        </section>
+      ) : null}
       <div className="toolbar-actions">
         <button
           className={`admin-button ${previewMode === "web" ? "primary" : "secondary"}`}
@@ -1893,6 +1971,12 @@ function dateLabel(value: string) {
   return Number.isNaN(date.getTime())
     ? "—"
     : new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(date);
+}
+function toLocalDateTimeInput(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
 }
 function ordinal(day: number) {
   const suffix =

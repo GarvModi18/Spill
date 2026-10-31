@@ -5,9 +5,14 @@ export type IssueStatus =
   | "review"
   | "partial"
   | "generation_failed"
+  | "review_missed"
   | "approved"
   | "rejected"
   | "scheduled"
+  | "cancelled"
+  | "sending"
+  | "delivery_failed"
+  | "partially_delivered"
   | "published";
 export interface IssueSummary {
   id: string;
@@ -19,6 +24,7 @@ export interface IssueSummary {
   updatedAt: string;
   sipCount: number;
   failedSipCount: number;
+  scheduledAt?: string;
 }
 export interface IssueVersion {
   version: number;
@@ -46,6 +52,7 @@ export interface IssueDetail extends IssueSummary {
   sips: IssueSip[];
   approvedAt?: string;
   rejectedAt?: string;
+  scheduledAt?: string;
   rejectionReason?: string;
 }
 export interface IssueStore {
@@ -60,4 +67,6 @@ export interface IssueStore {
   ): Promise<IssueDetail | null>;
   approve(issueId: string, actorId: string): Promise<IssueDetail | null>;
   reject(issueId: string, actorId: string, reason: string): Promise<IssueDetail | null>;
+  schedule(issueId: string, actorId: string, scheduledAt: Date): Promise<IssueDetail | null>;
+  cancel(issueId: string, actorId: string): Promise<IssueDetail | null>;
 }

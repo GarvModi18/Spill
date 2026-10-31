@@ -1,5 +1,7 @@
 import { Router, type Request } from "express";
 import { z } from "zod";
+import type { Queue } from "bullmq";
+import type { DeliveryJob } from "../delivery/queue.js";
 import type { IssueStore } from "./types.js";
 
 const editSchema = z.strictObject({
@@ -8,12 +10,13 @@ const editSchema = z.strictObject({
   expectedVersion: z.number().int().min(1),
 });
 const rejectSchema = z.strictObject({ reason: z.string().trim().min(3).max(1000) });
+const scheduleSchema = z.strictObject({ scheduledAt: z.iso.datetime() });
 function param(request: Request, key: string) {
   const value = request.params[key];
   return typeof value === "string" ? value : "";
 }
 
-export function createIssueRouter(store: IssueStore) {
+export function createIssueRouter(store: IssueStore, queue: Queue<DeliveryJob> | null = null) {
   const router = Router();
   router.get("/", async (request, response, next) => {
     try {
@@ -99,6 +102,61 @@ export function createIssueRouter(store: IssueStore) {
         response.status(409).json({ error: "Issue is no longer awaiting review." });
         return;
       }
+      response.json({ issue });
+    } catch (error) {
+      next(error);
+    }
+  });
+  router.post("/:issueId/schedule", async (request, response, next) => {
+    const parsed = scheduleSchema.safeParse(request.body);
+    const scheduledAt = parsed.success ? new Date(parsed.data.scheduledAt) : null;
+    if (
+      !scheduledAt ||
+      scheduledAt.getTime() <= Date.now() ||
+      scheduledAt.getTime() > Date.now() + 365 * 86_400_000
+    ) {
+      response.status(400).json({ error: "Choose a delivery time in the next 365 days" });
+      return;
+    }
+    if (!queue) {
+      response.status(503).json({ error: "Delivery queue is unavailable" });
+      return;
+    }
+    try {
+      const issue = await store.schedule(
+        param(request, "issueId"),
+        request.authUser!.id,
+        scheduledAt,
+      );
+      if (!issue) {
+        response.status(409).json({ error: "Only an approved issue can be scheduled" });
+        return;
+      }
+      const oldJob = await queue.getJob(`delivery-${issue.id}`);
+      if (oldJob) await oldJob.remove();
+      await queue.add(
+        "deliver",
+        { issueId: issue.id, scheduledAt: scheduledAt.toISOString() },
+        { jobId: `delivery-${issue.id}`, delay: Math.max(0, scheduledAt.getTime() - Date.now()) },
+      );
+      response.json({ issue });
+    } catch (error) {
+      next(error);
+    }
+  });
+  router.post("/:issueId/cancel", async (request, response, next) => {
+    if (Object.keys(request.body ?? {}).length) {
+      response.status(400).json({ error: "Cancellation does not accept a request body" });
+      return;
+    }
+    try {
+      const issue = await store.cancel(param(request, "issueId"), request.authUser!.id);
+      if (!issue) {
+        response.status(409).json({ error: "Issue is not scheduled" });
+        return;
+      }
+      const job = await queue?.getJob(`delivery-${issue.id}`);
+      if (job) await job.remove();
       response.json({ issue });
     } catch (error) {
       next(error);

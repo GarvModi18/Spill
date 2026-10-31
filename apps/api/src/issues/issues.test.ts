@@ -7,6 +7,8 @@ import type { AuthStore, AuthUser } from "../auth/types.js";
 import type { AdminStore } from "../admin/types.js";
 import { createApp } from "../app.js";
 import type { IssueDetail, IssueStore, IssueSummary } from "./types.js";
+import type { Queue } from "bullmq";
+import type { DeliveryJob } from "../delivery/queue.js";
 
 const token = "i".repeat(43);
 const actor: AuthUser = {
@@ -64,7 +66,7 @@ const detail: IssueDetail = {
   ],
 };
 
-function makeApp(issueStore: IssueStore) {
+function makeApp(issueStore: IssueStore, queue: Queue<DeliveryJob> | null = null) {
   const authStore = {
     findSession: async (tokenHash: string) =>
       tokenHash === hashSessionToken(token)
@@ -85,6 +87,7 @@ function makeApp(issueStore: IssueStore) {
     null,
     undefined,
     issueStore,
+    queue,
   );
 }
 
@@ -132,6 +135,57 @@ test("issue review returns Receipts and immutable versions and saves edits with 
     content: "Edited content",
     expectedVersion: 1,
   });
+});
+
+test("approved issues can be scheduled and cancellation removes the delayed delivery job", async () => {
+  let scheduled: unknown[] = [];
+  let cancelled: unknown[] = [];
+  let added: unknown[] = [];
+  let removed = false;
+  const issueStore = {
+    schedule: async (...args: unknown[]) => {
+      scheduled = args;
+      return { ...detail, status: "scheduled" as const };
+    },
+    cancel: async (...args: unknown[]) => {
+      cancelled = args;
+      return { ...detail, status: "cancelled" as const };
+    },
+  } as unknown as IssueStore;
+  const queue = {
+    getJob: async () => ({
+      remove: async () => {
+        removed = true;
+      },
+    }),
+    add: async (...args: unknown[]) => {
+      added = args;
+    },
+  } as unknown as Queue<DeliveryJob>;
+  const app = makeApp(issueStore, queue);
+  const scheduledAt = new Date(Date.now() + 60_000).toISOString();
+  const response = await request(app)
+    .post(`/api/v1/admin/issues/${detail.id}/schedule`)
+    .set("Cookie", `spill_session=${token}`)
+    .send({ scheduledAt });
+  assert.equal(response.status, 200);
+  assert.equal(scheduled[0], detail.id);
+  assert.equal(scheduled[1], actor.id);
+  assert.equal((scheduled[2] as Date).toISOString(), scheduledAt);
+  assert.equal((added[1] as DeliveryJob).issueId, detail.id);
+  assert.equal((added[2] as { jobId: string }).jobId, `delivery-${detail.id}`);
+  const invalid = await request(app)
+    .post(`/api/v1/admin/issues/${detail.id}/schedule`)
+    .set("Cookie", `spill_session=${token}`)
+    .send({ scheduledAt: "not-a-date" });
+  assert.equal(invalid.status, 400);
+  const canceledResponse = await request(app)
+    .post(`/api/v1/admin/issues/${detail.id}/cancel`)
+    .set("Cookie", `spill_session=${token}`)
+    .send();
+  assert.equal(canceledResponse.status, 200);
+  assert.deepEqual(cancelled, [detail.id, actor.id]);
+  assert.equal(removed, true);
 });
 
 test("approval and rejection require valid state transitions and reasoned rejection", async () => {

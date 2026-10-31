@@ -10,6 +10,12 @@ export class MongoGenerationStore implements GenerationStore {
       this.database
         .collection("newsletterIssues")
         .createIndex({ teaRoomId: 1, status: 1, createdAt: -1 }),
+      this.database
+        .collection("newsletterIssues")
+        .createIndex(
+          { teaRoomId: 1, generationKey: 1 },
+          { unique: true, partialFilterExpression: { generationKey: { $exists: true } } },
+        ),
       this.database.collection("issueSips").createIndex({ issueId: 1, order: 1 }, { unique: true }),
       this.database.collection("researchSources").createIndex({ issueId: 1, sipId: 1 }),
     ]);

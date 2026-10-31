@@ -27,6 +27,8 @@ export interface AuthStore {
       emailPreferences?: Partial<EmailPreferences> | undefined;
     },
   ): Promise<AuthUser | null>;
+  createEmailVerification?(userId: string, tokenHash: string, expiresAt: Date): Promise<void>;
+  verifyEmail?(tokenHash: string): Promise<boolean>;
 }
 
 // Express request augmentation requires declaration merging in this namespace.
@@ -35,6 +37,13 @@ declare global {
   namespace Express {
     interface Request {
       authUser?: AuthUser;
+      rawBody?: Buffer;
     }
+  }
+}
+
+declare module "node:http" {
+  interface IncomingMessage {
+    rawBody?: Buffer;
   }
 }

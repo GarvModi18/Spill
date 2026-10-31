@@ -16,6 +16,8 @@ import { MongoConciergeStore } from "./concierge/mongo-store.js";
 import { MongoResearchStore } from "./research/mongo-store.js";
 import { MongoGenerationStore } from "./generation/mongo-store.js";
 import { MongoIssueStore } from "./issues/mongo-store.js";
+import { createDeliveryQueue } from "./delivery/queue.js";
+import { MongoEmailDeliveryStore } from "./delivery/mongo-store.js";
 
 const env = parseEnvironment();
 const logger = createLogger("api", env.LOG_LEVEL);
@@ -33,6 +35,8 @@ try {
   });
   const generationStore = new MongoGenerationStore(database.db());
   const issueStore = new MongoIssueStore(database.db());
+  const deliveryQueue = createDeliveryQueue(env.REDIS_URL);
+  const emailDeliveryStore = new MongoEmailDeliveryStore(database.db());
   const checkpointer = new MongoDBSaver({
     client: database,
     dbName: database.db().databaseName,
@@ -64,6 +68,7 @@ try {
     researchStore.createIndexes(),
     generationStore.createIndexes(),
     issueStore.createIndexes(),
+    emailDeliveryStore.createIndexes(),
   ]);
   const server = createApp(
     database,
@@ -78,6 +83,8 @@ try {
     generationGraph,
     generationStore,
     issueStore,
+    deliveryQueue,
+    emailDeliveryStore,
   ).listen(env.PORT, () => {
     logger.info("API listening", { port: env.PORT, environment: env.NODE_ENV });
   });
@@ -86,6 +93,7 @@ try {
     logger.info("Shutting down API", { signal });
     server.close(async () => {
       await database.close();
+      await deliveryQueue.close();
       process.exit(0);
     });
   };

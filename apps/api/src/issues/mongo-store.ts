@@ -11,6 +11,7 @@ interface IssueDocument {
   updatedAt: Date;
   approvedAt?: Date;
   rejectedAt?: Date;
+  scheduledAt?: Date;
   rejectionReason?: string;
 }
 interface SipDocument {
@@ -88,6 +89,7 @@ export class MongoIssueStore implements IssueStore {
           updatedAt: issue.updatedAt.toISOString(),
           sipCount: sections.length,
           failedSipCount: sections.filter(({ status }) => status === "failed").length,
+          ...(issue.scheduledAt ? { scheduledAt: issue.scheduledAt.toISOString() } : {}),
         };
       }),
     );
@@ -175,6 +177,7 @@ export class MongoIssueStore implements IssueStore {
       sips,
       ...(issue.approvedAt ? { approvedAt: issue.approvedAt.toISOString() } : {}),
       ...(issue.rejectedAt ? { rejectedAt: issue.rejectedAt.toISOString() } : {}),
+      ...(issue.scheduledAt ? { scheduledAt: issue.scheduledAt.toISOString() } : {}),
       ...(issue.rejectionReason ? { rejectionReason: issue.rejectionReason } : {}),
     };
   }
@@ -191,7 +194,7 @@ export class MongoIssueStore implements IssueStore {
     const issue = await this.database
       .collection<IssueDocument>("newsletterIssues")
       .findOne({ _id: issueId });
-    if (!issue || !["review", "partial"].includes(issue.status)) return null;
+    if (!issue || !["review", "partial", "review_missed"].includes(issue.status)) return null;
     const sips = this.database.collection<SipDocument>("issueSips");
     const sip = await sips.findOne({ _id: sipId, issueId });
     if (!sip || (sip.version ?? 1) !== input.expectedVersion || sip.status === "failed")
@@ -240,7 +243,7 @@ export class MongoIssueStore implements IssueStore {
       return null;
     const now = new Date();
     const result = await this.database.collection<IssueDocument>("newsletterIssues").updateOne(
-      { _id: issueId, status: { $in: ["review", "partial"] } },
+      { _id: issueId, status: { $in: ["review", "partial", "review_missed"] } },
       {
         $set: { status: "approved", approvedAt: now, approvedBy: actor, updatedAt: now },
         $unset: { rejectionReason: "" },
@@ -260,7 +263,7 @@ export class MongoIssueStore implements IssueStore {
     if (!issueId || !actor) return null;
     const now = new Date();
     const result = await this.database.collection<IssueDocument>("newsletterIssues").updateOne(
-      { _id: issueId, status: { $in: ["review", "partial"] } },
+      { _id: issueId, status: { $in: ["review", "partial", "review_missed"] } },
       {
         $set: {
           status: "rejected",
@@ -273,6 +276,43 @@ export class MongoIssueStore implements IssueStore {
     );
     if (!result.modifiedCount) return null;
     await this.audit(actor, "issue.rejected", issueId, { reason });
+    return this.get(issueIdValue);
+  }
+  async schedule(
+    issueIdValue: string,
+    actorValue: string,
+    scheduledAt: Date,
+  ): Promise<IssueDetail | null> {
+    const issueId = oid(issueIdValue);
+    const actor = oid(actorValue);
+    if (!issueId || !actor) return null;
+    const changed = await this.database
+      .collection<IssueDocument & { approvedAt?: Date }>("newsletterIssues")
+      .updateOne(
+        { _id: issueId, status: { $in: ["approved", "scheduled"] }, approvedAt: { $type: "date" } },
+        { $set: { status: "scheduled", scheduledAt, updatedAt: new Date(), scheduledBy: actor } },
+      );
+    if (!changed.modifiedCount) return null;
+    await this.audit(actor, "issue.scheduled", issueId, { scheduledAt });
+    return this.get(issueIdValue);
+  }
+  async cancel(issueIdValue: string, actorValue: string): Promise<IssueDetail | null> {
+    const issueId = oid(issueIdValue);
+    const actor = oid(actorValue);
+    if (!issueId || !actor) return null;
+    const changed = await this.database.collection("newsletterIssues").updateOne(
+      { _id: issueId, status: "scheduled" },
+      {
+        $set: {
+          status: "cancelled",
+          cancelledAt: new Date(),
+          cancelledBy: actor,
+          updatedAt: new Date(),
+        },
+      },
+    );
+    if (!changed.modifiedCount) return null;
+    await this.audit(actor, "issue.cancelled", issueId, {});
     return this.get(issueIdValue);
   }
   private async audit(actor: ObjectId, action: string, issueId: ObjectId, details: object) {
