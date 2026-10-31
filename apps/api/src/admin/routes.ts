@@ -13,6 +13,9 @@ import { AdminStoreError, type AdminStore } from "./types.js";
 import type { ConciergeGraph } from "@spill/ai";
 import { createConciergeRouter } from "../concierge/routes.js";
 import type { ConciergeStore } from "../concierge/types.js";
+import { createResearchRouter } from "../research/routes.js";
+import type { ResearchService } from "@spill/ai";
+import type { ResearchStore } from "../research/types.js";
 
 function respondToError(
   error: unknown,
@@ -42,12 +45,17 @@ export function createAdminRouter(
   authStore: AuthStore,
   conciergeStore: ConciergeStore | null = null,
   conciergeGraph: ConciergeGraph | null = null,
+  researchService: ResearchService | null = null,
+  researchStore: ResearchStore | null = null,
 ) {
   const router = Router();
   router.use(authenticate(authStore), requireRole("admin"));
 
   if (conciergeStore) {
     router.use("/concierge", createConciergeRouter(conciergeStore, store, conciergeGraph));
+  }
+  if (researchService && researchStore) {
+    router.use("/research", createResearchRouter(store, researchService, researchStore));
   }
 
   router.get("/dashboard", async (_request, response, next) => {

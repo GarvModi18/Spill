@@ -7,3 +7,11 @@ export type {
   ConciergeRoomContext,
   ConciergeTurn,
 } from "./concierge/types.js";
+export { ResearchService } from "./research/service.js";
+export type { ResearchServiceConfig } from "./research/service.js";
+export type {
+  ResearchFailure,
+  ResearchProvider,
+  ResearchQuery,
+  ResearchSearchResult,
+} from "./research/types.js";

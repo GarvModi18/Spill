@@ -177,6 +177,25 @@ const adminTeaRoomPatchBaseSchema = adminTeaRoomBaseSchema.partial();
 export type AdminTeaRoom = z.infer<typeof adminTeaRoomBaseSchema>;
 
 export const researchSourceTypeSchema = researchSourceSchema.shape.type;
+export type ResearchSourceType = z.infer<typeof researchSourceTypeSchema>;
+export type ResearchSource = z.infer<typeof researchSourceSchema>;
+export const researchReceiptSchema = z.strictObject({
+  url: z.url().refine((url) => /^https?:/.test(url)),
+  title: z.string().trim().min(1).max(300),
+  sourceName: z.string().trim().min(1).max(160),
+  publishedAt: z.iso.datetime().optional(),
+  retrievedAt: z.iso.datetime(),
+  snippet: z.string().max(4000),
+  sourceType: researchSourceTypeSchema,
+  verificationStatus: z.enum(["unverified", "supported", "conflicting", "rejected"]),
+});
+export type ResearchReceipt = z.infer<typeof researchReceiptSchema>;
+
+export const researchSearchRequestSchema = z.strictObject({
+  sipId: z.string().regex(/^[a-f\d]{24}$/i),
+  query: z.string().trim().min(2).max(500),
+  maxResults: z.number().int().min(1).max(20).default(10),
+});
 
 export const sipConfigSchema = z.strictObject({
   title: z.string().trim().min(1).max(120),

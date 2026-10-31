@@ -5,8 +5,9 @@ import { MongoAdminStore } from "./admin/mongo-store.js";
 import { connectToDatabase } from "./database.js";
 import { createApp } from "./app.js";
 import { MongoDBSaver } from "@langchain/langgraph-checkpoint-mongodb";
-import { createConciergeGraph, GroqConciergeModel } from "@spill/ai";
+import { createConciergeGraph, GroqConciergeModel, ResearchService } from "@spill/ai";
 import { MongoConciergeStore } from "./concierge/mongo-store.js";
+import { MongoResearchStore } from "./research/mongo-store.js";
 
 const env = parseEnvironment();
 const logger = createLogger("api", env.LOG_LEVEL);
@@ -17,6 +18,11 @@ try {
   const readerStore = new MongoReaderStore(database.db());
   const adminStore = new MongoAdminStore(database.db());
   const conciergeStore = new MongoConciergeStore(database.db());
+  const researchStore = new MongoResearchStore(database.db());
+  const researchService = new ResearchService({
+    ...(env.GITHUB_TOKEN ? { githubToken: env.GITHUB_TOKEN } : {}),
+    ...(env.TAVILY_API_KEY ? { tavilyApiKey: env.TAVILY_API_KEY } : {}),
+  });
   const checkpointer = new MongoDBSaver({
     client: database,
     dbName: database.db().databaseName,
@@ -35,6 +41,7 @@ try {
     readerStore.createIndexes(),
     adminStore.createIndexes(),
     conciergeStore.createIndexes(),
+    researchStore.createIndexes(),
   ]);
   const server = createApp(
     database,
@@ -44,6 +51,8 @@ try {
     adminStore,
     conciergeStore,
     conciergeGraph,
+    researchService,
+    researchStore,
   ).listen(env.PORT, () => {
     logger.info("API listening", { port: env.PORT, environment: env.NODE_ENV });
   });

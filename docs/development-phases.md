@@ -41,4 +41,10 @@ Phase 5 adds the Tea Concierge configuration graph, structured Groq adapter, Mon
 
 Validation commands: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build`.
 
+## Phase 6 implementation record
+
+Phase 6 adds bounded research providers for GitHub, Hacker News, Hugging Face, RSS feeds, and Tavily web search; normalizes results into unverified Receipts; and exposes an admin-only Sip research endpoint. Research runs, provider failures, and receipt evidence are persisted in MongoDB with lookup indexes. RSS fetches reject unsafe and non-public destinations, and provider responses and snippets are size-limited. External-provider credentials are optional and supplied through validated environment configuration.
+
+Validation commands: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build`.
+
 Complete and verify one phase at a time. See `PROJECT_SPEC.md` for phase details and acceptance criteria.

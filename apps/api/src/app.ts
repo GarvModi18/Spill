@@ -15,6 +15,9 @@ import type { AdminStore } from "./admin/types.js";
 import type { ConciergeGraph } from "@spill/ai";
 import { MongoConciergeStore } from "./concierge/mongo-store.js";
 import type { ConciergeStore } from "./concierge/types.js";
+import type { ResearchService } from "@spill/ai";
+import { MongoResearchStore } from "./research/mongo-store.js";
+import type { ResearchStore } from "./research/types.js";
 
 const logger = createLogger("api");
 
@@ -26,6 +29,8 @@ export function createApp(
   adminStore?: AdminStore,
   conciergeStore?: ConciergeStore,
   conciergeGraph: ConciergeGraph | null = null,
+  researchService?: ResearchService | null,
+  researchStore?: ResearchStore,
 ): Express {
   const app = express();
   app.disable("x-powered-by");
@@ -47,6 +52,8 @@ export function createApp(
   const resolvedAdminStore = adminStore ?? (database ? new MongoAdminStore(database.db()) : null);
   const resolvedConciergeStore =
     conciergeStore ?? (database ? new MongoConciergeStore(database.db()) : null);
+  const resolvedResearchStore =
+    researchStore ?? (database ? new MongoResearchStore(database.db()) : null);
   if (resolvedAdminStore && resolvedAuthStore) {
     app.use(
       "/api/v1/admin",
@@ -55,6 +62,8 @@ export function createApp(
         resolvedAuthStore,
         resolvedConciergeStore,
         conciergeGraph,
+        researchService ?? null,
+        resolvedResearchStore,
       ),
     );
   }
