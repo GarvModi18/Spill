@@ -40,9 +40,9 @@ scripts/        Development and maintenance scripts
 2. Copy `.env.example` to `.env` and fill in local values.
 3. Review `PROJECT_SPEC.md` before implementation.
 4. Install the workspace dependencies with `npm ci`.
-5. Use the Phase 1 foundation and follow the next development phase in `PROJECT_SPEC.md` when you are ready to continue.
+5. Start local infrastructure with `docker compose -f infra/docker/compose.yaml up -d`.
 
-The repository implements Phases 1–9: Tea Room and Sip management, the Tea Concierge workflow, research and issue generation, admin review, and scheduled email delivery. Configure the API and worker environments as described in `.env.example`; live AI generation requires `GROQ_API_KEY` and `GROQ_MODEL`, and email delivery requires `RESEND_API_KEY`, `EMAIL_FROM`, and an `UNSUBSCRIBE_SECRET`. The worker requires Redis and runs independently from the API.
+The repository implements Phases 1–10: Tea Room and Sip management, the Tea Concierge workflow, research and issue generation, admin review, scheduled email delivery, API hardening, and container/backup/load-test scaffolding. Configure API and worker environments as described in `.env.example`; live AI generation requires `GROQ_API_KEY` and `GROQ_MODEL`, and email delivery requires `RESEND_API_KEY`, `EMAIL_FROM`, and an `UNSUBSCRIBE_SECRET`. The worker requires Redis and runs independently from the API. Deployment, backup restore drills, and load checks are documented in `infra/docker/README.md`.
 
 ## Development
 

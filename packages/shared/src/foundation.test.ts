@@ -91,6 +91,9 @@ test("Admin Tea Room schema rejects invalid timezones and out-of-order schedules
 
 test("environment parsing applies defaults and rejects invalid configuration", () => {
   assert.equal(parseEnvironment({}).PORT, 4000);
+  assert.equal(parseEnvironment({}).TRUST_PROXY_HOPS, 0);
+  assert.equal(parseEnvironment({}).API_RATE_LIMIT_MAX, 3000);
+  assert.throws(() => parseEnvironment({ API_RATE_LIMIT_MAX: "0" }), /API_RATE_LIMIT_MAX/);
   assert.throws(() => parseEnvironment({ PORT: "not-a-port" }), /PORT/);
   assert.throws(() => parseEnvironment({ NODE_ENV: "production" }), /AUTH_SECRET/);
 });

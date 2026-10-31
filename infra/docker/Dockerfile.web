@@ -1,0 +1,19 @@
+FROM node:22-alpine AS build
+WORKDIR /app
+COPY package.json package-lock.json ./
+COPY tsconfig.json ./tsconfig.json
+COPY ai/package.json ./ai/package.json
+COPY apps ./apps
+COPY packages ./packages
+COPY ai ./ai
+RUN npm ci
+ARG WEB_APP=reader-web
+ARG VITE_API_URL=/api/v1
+ENV VITE_API_URL=${VITE_API_URL}
+RUN npm run build -w @spill/${WEB_APP}
+
+FROM nginx:1.27-alpine AS runtime
+ARG WEB_APP=reader-web
+COPY infra/docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/apps/${WEB_APP}/dist /usr/share/nginx/html
+EXPOSE 8080

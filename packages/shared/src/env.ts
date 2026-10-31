@@ -22,6 +22,8 @@ const environmentSchema = z.object({
   SENTRY_DSN: z.string().url().optional().or(z.literal("")),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   PORT: z.coerce.number().int().min(1).max(65535).default(4000),
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(10).default(0),
+  API_RATE_LIMIT_MAX: z.coerce.number().int().min(1).max(100_000).default(3000),
 });
 
 export type Environment = z.infer<typeof environmentSchema>;

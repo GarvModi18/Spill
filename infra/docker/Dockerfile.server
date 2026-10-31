@@ -1,0 +1,23 @@
+FROM node:22-alpine AS build
+WORKDIR /app
+COPY package.json package-lock.json ./
+COPY tsconfig.json ./tsconfig.json
+COPY ai/package.json ./ai/package.json
+COPY apps ./apps
+COPY packages ./packages
+COPY ai ./ai
+RUN npm ci
+RUN npm run build
+
+FROM node:22-alpine AS runtime
+ENV NODE_ENV=production
+WORKDIR /app
+COPY --from=build /app/package.json /app/package-lock.json ./
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/ai ./ai
+COPY --from=build /app/packages ./packages
+COPY --from=build /app/apps ./apps
+ARG SERVICE=api
+ENV SERVICE=${SERVICE}
+EXPOSE 4000
+CMD ["sh", "-c", "npm run start -w @spill/${SERVICE}"]

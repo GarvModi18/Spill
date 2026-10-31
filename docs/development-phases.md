@@ -63,4 +63,10 @@ Phase 9 adds a dedicated BullMQ worker for timezone-aware Tea Room generation an
 
 Validation commands: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build`.
 
+## Phase 10 implementation record
+
+Phase 10 adds API security headers (including production-only HSTS), safe request correlation IDs, structured request duration/status logs, configurable reverse-proxy trust and global API rate limiting, and tests for headers, CORS origin reflection, and 429 behavior. Container definitions now support the API, persistent worker, and both static web apps; local MongoDB/Redis compose binds only to loopback. A MongoDB archive backup utility and k6 staging smoke/load profile are included, with deployment, secret handling, backup retention/restoration drills, staging, and rollout guidance in `infra/docker/README.md`. Cloud deployment, provider-specific alert routing, external backup storage, and restoration execution require deployment credentials and operator infrastructure and are intentionally documented rather than run from the development workspace.
+
+Validation run for this implementation: `npm test`. The requester asked to skip format and typecheck runs.
+
 Complete and verify one phase at a time. See `PROJECT_SPEC.md` for phase details and acceptance criteria.

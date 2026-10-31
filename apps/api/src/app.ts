@@ -1,5 +1,7 @@
 import express, { type Express } from "express";
 import cors from "cors";
+import { randomUUID } from "node:crypto";
+import { rateLimit } from "express-rate-limit";
 import type { MongoClient } from "mongodb";
 import { createLogger, parseEnvironment } from "@spill/shared";
 import type { Environment } from "@spill/shared";
@@ -49,7 +51,36 @@ export function createApp(
   emailDeliveryStore?: EmailDeliveryStore,
 ): Express {
   const app = express();
+  app.set("trust proxy", environment.TRUST_PROXY_HOPS);
   app.disable("x-powered-by");
+  app.use((request, response, next) => {
+    const startedAt = performance.now();
+    const suppliedId = request.header("x-request-id");
+    const requestId = suppliedId && /^[A-Za-z0-9._-]{1,64}$/.test(suppliedId) ? suppliedId : randomUUID();
+    response.setHeader("X-Request-Id", requestId);
+    response.setHeader("X-Content-Type-Options", "nosniff");
+    response.setHeader("X-Frame-Options", "DENY");
+    response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    response.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    response.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+    response.setHeader("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'; style-src 'self'");
+    if (environment.NODE_ENV === "production") response.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    response.on("finish", () => logger.info("HTTP request completed", {
+      requestId,
+      method: request.method,
+      path: request.path,
+      statusCode: response.statusCode,
+      durationMs: Math.round(performance.now() - startedAt),
+    }));
+    next();
+  });
+  app.use(rateLimit({
+    windowMs: 60_000,
+    limit: environment.API_RATE_LIMIT_MAX,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+    skip: (request) => request.path.startsWith("/health/") || request.path.startsWith("/api/v1/webhooks/"),
+  }));
   app.use(
     cors({
       origin: [environment.READER_WEB_URL, environment.ADMIN_WEB_URL],
@@ -122,15 +153,30 @@ export function createApp(
       response.status(503).json({ status: "not_ready", dependencies: { mongodb: "disconnected" } });
       return;
     }
+    const dependencies: Record<string, string> = {};
     try {
       await database.db().command({ ping: 1 });
-      response.status(200).json({ status: "ok", dependencies: { mongodb: "connected" } });
+      dependencies.mongodb = "connected";
     } catch (error) {
       logger.error("Database readiness check failed", {
         error: error instanceof Error ? error.message : String(error),
       });
       response.status(503).json({ status: "not_ready", dependencies: { mongodb: "unavailable" } });
+      return;
     }
+    if (deliveryQueue) {
+      try {
+        await deliveryQueue.getJobCounts();
+        dependencies.redis = "connected";
+      } catch (error) {
+        logger.error("Redis readiness check failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        response.status(503).json({ status: "not_ready", dependencies: { ...dependencies, redis: "unavailable" } });
+        return;
+      }
+    }
+    response.status(200).json({ status: "ok", dependencies });
   });
 
   return app;

@@ -22,7 +22,8 @@
     "dev:reader": "npm run dev -w @spill/reader-web",
     "dev:admin": "npm run dev -w @spill/admin-web",
     "dev:api": "npm run dev -w @spill/api",
-    "start:api": "npm run start -w @spill/api"
+    "start:api": "npm run start -w @spill/api",
+    "backup:mongodb": "node scripts/backup-mongodb.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",
