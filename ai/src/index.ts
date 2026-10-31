@@ -15,3 +15,16 @@ export type {
   ResearchQuery,
   ResearchSearchResult,
 } from "./research/types.js";
+export { createGenerationGraph } from "./generation/graph.js";
+export type { GenerationGraph } from "./generation/graph.js";
+export { GroqGenerationModel } from "./generation/groq-model.js";
+export type {
+  GenerationDependencies,
+  GenerationDraft,
+  GenerationInput,
+  GenerationModel,
+  GenerationResult,
+  GenerationRoom,
+  GenerationSip,
+  GenerationSipResult,
+} from "./generation/types.js";

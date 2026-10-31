@@ -18,6 +18,9 @@ import type { ConciergeStore } from "./concierge/types.js";
 import type { ResearchService } from "@spill/ai";
 import { MongoResearchStore } from "./research/mongo-store.js";
 import type { ResearchStore } from "./research/types.js";
+import { MongoGenerationStore } from "./generation/mongo-store.js";
+import type { GenerationGraph } from "@spill/ai";
+import type { GenerationStore } from "./generation/types.js";
 
 const logger = createLogger("api");
 
@@ -31,6 +34,8 @@ export function createApp(
   conciergeGraph: ConciergeGraph | null = null,
   researchService?: ResearchService | null,
   researchStore?: ResearchStore,
+  generationGraph?: GenerationGraph | null,
+  generationStore?: GenerationStore,
 ): Express {
   const app = express();
   app.disable("x-powered-by");
@@ -54,6 +59,8 @@ export function createApp(
     conciergeStore ?? (database ? new MongoConciergeStore(database.db()) : null);
   const resolvedResearchStore =
     researchStore ?? (database ? new MongoResearchStore(database.db()) : null);
+  const resolvedGenerationStore =
+    generationStore ?? (database ? new MongoGenerationStore(database.db()) : null);
   if (resolvedAdminStore && resolvedAuthStore) {
     app.use(
       "/api/v1/admin",
@@ -64,6 +71,8 @@ export function createApp(
         conciergeGraph,
         researchService ?? null,
         resolvedResearchStore,
+        generationGraph ?? null,
+        resolvedGenerationStore,
       ),
     );
   }

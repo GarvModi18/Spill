@@ -16,6 +16,9 @@ import type { ConciergeStore } from "../concierge/types.js";
 import { createResearchRouter } from "../research/routes.js";
 import type { ResearchService } from "@spill/ai";
 import type { ResearchStore } from "../research/types.js";
+import { createGenerationRouter } from "../generation/routes.js";
+import type { GenerationGraph } from "@spill/ai";
+import type { GenerationStore } from "../generation/types.js";
 
 function respondToError(
   error: unknown,
@@ -47,6 +50,8 @@ export function createAdminRouter(
   conciergeGraph: ConciergeGraph | null = null,
   researchService: ResearchService | null = null,
   researchStore: ResearchStore | null = null,
+  generationGraph: GenerationGraph | null = null,
+  generationStore: GenerationStore | null = null,
 ) {
   const router = Router();
   router.use(authenticate(authStore), requireRole("admin"));
@@ -56,6 +61,9 @@ export function createAdminRouter(
   }
   if (researchService && researchStore) {
     router.use("/research", createResearchRouter(store, researchService, researchStore));
+  }
+  if (generationStore) {
+    router.use("/generation", createGenerationRouter(store, generationStore, generationGraph));
   }
 
   router.get("/dashboard", async (_request, response, next) => {

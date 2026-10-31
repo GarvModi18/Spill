@@ -523,6 +523,17 @@ function TeaRoomEditorPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [editingSip, setEditingSip] = useState<AdminSip | "new" | null>(null);
+  const [brewing, setBrewing] = useState(false);
+  const [brewResult, setBrewResult] = useState<{
+    issueId: string;
+    status: string;
+    sips: Array<{
+      title: string;
+      status: string;
+      qualityIssues: Array<{ message: string }>;
+      error?: string;
+    }>;
+  } | null>(null);
 
   async function refresh() {
     if (!id || isNew) return;
@@ -653,6 +664,28 @@ function TeaRoomEditorPage() {
     }
   }
 
+  async function brewTea() {
+    if (!room) return;
+    setBrewing(true);
+    setError("");
+    setBrewResult(null);
+    try {
+      const result = await api<typeof brewResult>(`/admin/generation/tea-rooms/${room.id}/brew`, {
+        method: "POST",
+      });
+      setBrewResult(result);
+      setNotice(
+        result?.status === "review"
+          ? "Tea generated and ready for review."
+          : `Tea generation finished with status: ${result?.status}.`,
+      );
+    } catch (reason) {
+      setError(messageOf(reason));
+    } finally {
+      setBrewing(false);
+    }
+  }
+
   async function saveSip(input: SipInput, sip: AdminSip | "new") {
     if (!room) return;
     setError("");
@@ -743,6 +776,23 @@ function TeaRoomEditorPage() {
       </div>
       {error && <InlineNotice tone="error">{error}</InlineNotice>}
       {notice && <InlineNotice tone="success">{notice}</InlineNotice>}
+      {brewResult && (
+        <section className="panel-card" aria-live="polite">
+          <p className="eyebrow">GENERATION RESULT · {brewResult.status.toUpperCase()}</p>
+          <p>Issue run {brewResult.issueId}</p>
+          <ul>
+            {brewResult.sips.map((sip) => (
+              <li key={sip.title}>
+                <strong>{sip.title}</strong> · {sip.status}
+                {sip.error ? ` · ${sip.error}` : ""}
+                {sip.qualityIssues.length
+                  ? ` · ${sip.qualityIssues.map(({ message }) => message).join(" ")}`
+                  : ""}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {room && (
         <div className="editor-toolbar">
           <span>Last saved {dateLabel(room.updatedAt)}</span>
@@ -763,9 +813,21 @@ function TeaRoomEditorPage() {
                 Activate
               </button>
             ) : room.status === "active" ? (
-              <button className="admin-button secondary" onClick={() => void statusAction("pause")}>
-                Pause room
-              </button>
+              <>
+                <button
+                  className="admin-button secondary"
+                  onClick={() => void brewTea()}
+                  disabled={brewing}
+                >
+                  {brewing ? "Brewing…" : "Brew a Tea"}
+                </button>
+                <button
+                  className="admin-button secondary"
+                  onClick={() => void statusAction("pause")}
+                >
+                  Pause room
+                </button>
+              </>
             ) : null}
             {room.status !== "archived" && (
               <button

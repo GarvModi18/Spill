@@ -47,4 +47,10 @@ Phase 6 adds bounded research providers for GitHub, Hacker News, Hugging Face, R
 
 Validation commands: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build`.
 
+## Phase 7 implementation record
+
+Phase 7 adds a checkpointed LangGraph generation workflow with bounded per-Sip parallelism, configured research retrieval, structured Groq output, evidence URL checks, item-count and support quality checks, one bounded model retry, and partial issue completion when a Sip fails. Issues and Sip results are persisted with model/prompt versions, retry counts, quality findings, and source Receipts. Admins can trigger a brew for an active Tea Room from the Admin Studio and see the review status and per-Sip findings. Issue editing, approval, and targeted regeneration are Phase 8 work.
+
+Validation commands: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build`.
+
 Complete and verify one phase at a time. See `PROJECT_SPEC.md` for phase details and acceptance criteria.
