@@ -19,6 +19,8 @@ import type { ResearchStore } from "../research/types.js";
 import { createGenerationRouter } from "../generation/routes.js";
 import type { GenerationGraph } from "@spill/ai";
 import type { GenerationStore } from "../generation/types.js";
+import { createIssueRouter } from "../issues/routes.js";
+import type { IssueStore } from "../issues/types.js";
 
 function respondToError(
   error: unknown,
@@ -52,6 +54,7 @@ export function createAdminRouter(
   researchStore: ResearchStore | null = null,
   generationGraph: GenerationGraph | null = null,
   generationStore: GenerationStore | null = null,
+  issueStore: IssueStore | null = null,
 ) {
   const router = Router();
   router.use(authenticate(authStore), requireRole("admin"));
@@ -65,6 +68,7 @@ export function createAdminRouter(
   if (generationStore) {
     router.use("/generation", createGenerationRouter(store, generationStore, generationGraph));
   }
+  if (issueStore) router.use("/issues", createIssueRouter(issueStore));
 
   router.get("/dashboard", async (_request, response, next) => {
     try {

@@ -52,23 +52,36 @@ export class MongoGenerationStore implements GenerationStore {
     );
     if (!result.sips.length) return;
     const sipCollection = this.database.collection("issueSips");
-    await sipCollection.insertMany(
-      result.sips.map((sip) => ({
+    const sipDocuments = result.sips.map((sip) => ({
+      _id: new ObjectId(),
+      issueId: id,
+      sipId: new ObjectId(sip.sipId),
+      title: sip.title,
+      description: sip.description,
+      order: sip.order,
+      status: sip.status,
+      content: sip.content,
+      items: sip.items,
+      qualityIssues: sip.qualityIssues,
+      error: sip.error,
+      modelVersion: sip.modelVersion,
+      promptVersion: sip.promptVersion,
+      attempts: sip.attempts,
+      updatedAt: now,
+      version: 1,
+    }));
+    await sipCollection.insertMany(sipDocuments);
+    await this.database.collection("issueSipVersions").insertMany(
+      sipDocuments.map((sip) => ({
         _id: new ObjectId(),
         issueId: id,
-        sipId: new ObjectId(sip.sipId),
+        issueSipId: sip._id,
+        version: 1,
         title: sip.title,
-        description: sip.description,
-        order: sip.order,
-        status: sip.status,
         content: sip.content,
-        items: sip.items,
-        qualityIssues: sip.qualityIssues,
-        error: sip.error,
-        modelVersion: sip.modelVersion,
-        promptVersion: sip.promptVersion,
-        attempts: sip.attempts,
-        updatedAt: now,
+        changedBy: null,
+        reason: "generation",
+        createdAt: now,
       })),
     );
     const receipts = result.sips.flatMap((sip) =>

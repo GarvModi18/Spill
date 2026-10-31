@@ -21,6 +21,8 @@ import type { ResearchStore } from "./research/types.js";
 import { MongoGenerationStore } from "./generation/mongo-store.js";
 import type { GenerationGraph } from "@spill/ai";
 import type { GenerationStore } from "./generation/types.js";
+import { MongoIssueStore } from "./issues/mongo-store.js";
+import type { IssueStore } from "./issues/types.js";
 
 const logger = createLogger("api");
 
@@ -36,6 +38,7 @@ export function createApp(
   researchStore?: ResearchStore,
   generationGraph?: GenerationGraph | null,
   generationStore?: GenerationStore,
+  issueStore?: IssueStore,
 ): Express {
   const app = express();
   app.disable("x-powered-by");
@@ -61,6 +64,7 @@ export function createApp(
     researchStore ?? (database ? new MongoResearchStore(database.db()) : null);
   const resolvedGenerationStore =
     generationStore ?? (database ? new MongoGenerationStore(database.db()) : null);
+  const resolvedIssueStore = issueStore ?? (database ? new MongoIssueStore(database.db()) : null);
   if (resolvedAdminStore && resolvedAuthStore) {
     app.use(
       "/api/v1/admin",
@@ -73,6 +77,7 @@ export function createApp(
         resolvedResearchStore,
         generationGraph ?? null,
         resolvedGenerationStore,
+        resolvedIssueStore,
       ),
     );
   }

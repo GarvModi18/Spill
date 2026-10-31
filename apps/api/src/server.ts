@@ -15,6 +15,7 @@ import {
 import { MongoConciergeStore } from "./concierge/mongo-store.js";
 import { MongoResearchStore } from "./research/mongo-store.js";
 import { MongoGenerationStore } from "./generation/mongo-store.js";
+import { MongoIssueStore } from "./issues/mongo-store.js";
 
 const env = parseEnvironment();
 const logger = createLogger("api", env.LOG_LEVEL);
@@ -31,6 +32,7 @@ try {
     ...(env.TAVILY_API_KEY ? { tavilyApiKey: env.TAVILY_API_KEY } : {}),
   });
   const generationStore = new MongoGenerationStore(database.db());
+  const issueStore = new MongoIssueStore(database.db());
   const checkpointer = new MongoDBSaver({
     client: database,
     dbName: database.db().databaseName,
@@ -61,6 +63,7 @@ try {
     conciergeStore.createIndexes(),
     researchStore.createIndexes(),
     generationStore.createIndexes(),
+    issueStore.createIndexes(),
   ]);
   const server = createApp(
     database,
@@ -74,6 +77,7 @@ try {
     researchStore,
     generationGraph,
     generationStore,
+    issueStore,
   ).listen(env.PORT, () => {
     logger.info("API listening", { port: env.PORT, environment: env.NODE_ENV });
   });

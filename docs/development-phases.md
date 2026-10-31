@@ -53,4 +53,10 @@ Phase 7 adds a checkpointed LangGraph generation workflow with bounded per-Sip p
 
 Validation commands: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build`.
 
+## Phase 8 implementation record
+
+Phase 8 adds an admin issue review workspace with issue filtering, web/email-style previews, editable Sip titles and content, version history, source Receipt inspection, and reasoned rejection or approval. Edits require the expected version to prevent stale writes. Approval is blocked for issues with failed or empty Sips; approvals, rejections, and edits are written to the audit log. Delivery scheduling remains Phase 9 work.
+
+Validation commands: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build`.
+
 Complete and verify one phase at a time. See `PROJECT_SPEC.md` for phase details and acceptance criteria.

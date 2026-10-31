@@ -9,6 +9,8 @@ import {
   type RoomInput,
   type SipInput,
   type SchedulePoint,
+  type IssueSummary,
+  type IssueDetail,
 } from "./api";
 import { useAuth } from "./auth";
 import { ConciergePage } from "./concierge";
@@ -133,6 +135,9 @@ function AdminFrame({ children }: { children: ReactNode }) {
           <NavLink to="/tea-rooms">
             <span>◉</span> Tea Rooms
           </NavLink>
+          <NavLink to="/issues">
+            <span>▤</span> Issues
+          </NavLink>
           <NavLink to="/concierge">
             <span>✳</span> Tea Concierge
           </NavLink>
@@ -177,9 +182,346 @@ function AdminRoutes() {
       <Route path="/tea-rooms" element={<TeaRoomsPage />} />
       <Route path="/tea-rooms/new" element={<TeaRoomEditorPage />} />
       <Route path="/tea-rooms/:id" element={<TeaRoomEditorPage />} />
+      <Route path="/issues" element={<IssuesPage />} />
+      <Route path="/issues/:id" element={<IssueEditorPage />} />
       <Route path="/concierge" element={<ConciergePage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+  );
+}
+
+function IssuesPage() {
+  const [issues, setIssues] = useState<IssueSummary[]>([]);
+  const [status, setStatus] = useState("review");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    setLoading(true);
+    setError("");
+    api<{ issues: IssueSummary[] }>(
+      `/admin/issues${status ? `?status=${encodeURIComponent(status)}` : ""}`,
+    )
+      .then((result) => setIssues(result.issues))
+      .catch((reason: unknown) => setError(messageOf(reason)))
+      .finally(() => setLoading(false));
+  }, [status]);
+  return (
+    <div className="page-content">
+      <div className="page-heading-row">
+        <div>
+          <p className="eyebrow">TASTE TEST</p>
+          <h1>Issue review</h1>
+          <p className="page-subtitle">
+            Edit generated Sips, inspect their Receipts, and approve a complete Tea.
+          </p>
+        </div>
+        <label className="field-label">
+          Status
+          <select value={status} onChange={(event) => setStatus(event.target.value)}>
+            <option value="review">Awaiting review</option>
+            <option value="partial">Partial</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+            <option value="">All issues</option>
+          </select>
+        </label>
+      </div>
+      {error && <InlineNotice tone="error">{error}</InlineNotice>}
+      {loading ? (
+        <div className="metric-loading">Loading issues…</div>
+      ) : issues.length ? (
+        <div className="table-card">
+          <table>
+            <thead>
+              <tr>
+                <th>Tea</th>
+                <th>Tea Room</th>
+                <th>Status</th>
+                <th>Sips</th>
+                <th>Started</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {issues.map((issue) => (
+                <tr key={issue.id}>
+                  <td>
+                    <strong>{issue.title}</strong>
+                  </td>
+                  <td>{issue.teaRoomName}</td>
+                  <td>
+                    <StatusPill status={issue.status} />
+                  </td>
+                  <td>
+                    {issue.sipCount}
+                    {issue.failedSipCount ? ` · ${issue.failedSipCount} failed` : ""}
+                  </td>
+                  <td>{dateLabel(issue.createdAt)}</td>
+                  <td>
+                    <Link className="plain-link" to={`/issues/${issue.id}`}>
+                      Review →
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="admin-empty">
+          <span>▤</span>
+          <h2>No issues here yet</h2>
+          <p>When a Tea is brewed, it will appear here for review.</p>
+          <Link className="admin-button secondary" to="/tea-rooms">
+            View Tea Rooms
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function IssueEditorPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [issue, setIssue] = useState<IssueDetail | null>(null);
+  const [drafts, setDrafts] = useState<Record<string, { title: string; content: string }>>({});
+  const [previewMode, setPreviewMode] = useState<"web" | "email">("web");
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  async function refresh() {
+    if (!id) return;
+    const result = await api<{ issue: IssueDetail }>(`/admin/issues/${id}`);
+    setIssue(result.issue);
+    setDrafts(
+      Object.fromEntries(
+        result.issue.sips.map((sip) => [sip.id, { title: sip.title, content: sip.content }]),
+      ),
+    );
+  }
+  useEffect(() => {
+    void refresh().catch((reason: unknown) => setError(messageOf(reason)));
+  }, [id]);
+  async function saveSip(sip: IssueDetail["sips"][number]) {
+    if (!id) return;
+    setBusy(sip.id);
+    setError("");
+    setNotice("");
+    try {
+      const draft = drafts[sip.id]!;
+      const result = await api<{ issue: IssueDetail }>(`/admin/issues/${id}/sips/${sip.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ ...draft, expectedVersion: sip.version }),
+      });
+      setIssue(result.issue);
+      setDrafts(
+        Object.fromEntries(
+          result.issue.sips.map((entry) => [
+            entry.id,
+            { title: entry.title, content: entry.content },
+          ]),
+        ),
+      );
+      setNotice(`Saved ${sip.title}; version history updated.`);
+    } catch (reason) {
+      setError(messageOf(reason));
+    } finally {
+      setBusy("");
+    }
+  }
+  async function decide(action: "approve" | "reject") {
+    if (!id) return;
+    const reason = action === "reject" ? window.prompt("Why is this issue being rejected?") : null;
+    if (action === "reject" && !reason?.trim()) return;
+    if (action === "approve" && !window.confirm("Approve this Tea for the next delivery phase?"))
+      return;
+    setBusy(action);
+    setError("");
+    setNotice("");
+    try {
+      const result = await api<{ issue: IssueDetail }>(`/admin/issues/${id}/${action}`, {
+        method: "POST",
+        ...(action === "reject" ? { body: JSON.stringify({ reason }) } : {}),
+      });
+      setIssue(result.issue);
+      setNotice(action === "approve" ? "Tea approved." : "Tea rejected with a reason recorded.");
+    } catch (cause) {
+      setError(messageOf(cause));
+    } finally {
+      setBusy("");
+    }
+  }
+  if (!issue)
+    return (
+      <div className="page-content">
+        {error ? (
+          <InlineNotice tone="error">{error}</InlineNotice>
+        ) : (
+          <div className="metric-loading">Loading issue…</div>
+        )}
+        <button className="admin-button quiet" onClick={() => navigate("/issues")}>
+          ← Issues
+        </button>
+      </div>
+    );
+  const editable = issue.status === "review" || issue.status === "partial";
+  return (
+    <div className="page-content editor-page">
+      <div className="editor-breadcrumb">
+        <Link to="/issues">Issues</Link>
+        <span>/</span>
+        <b>{issue.title}</b>
+      </div>
+      <div className="editor-title-row">
+        <div>
+          <p className="eyebrow">
+            {issue.teaRoomName.toUpperCase()} · {issue.createdAt.slice(0, 10)}
+          </p>
+          <h1>{issue.title}</h1>
+          <p className="page-subtitle">
+            {issue.sipCount} Sips · {issue.failedSipCount} failed
+          </p>
+        </div>
+        <StatusPill status={issue.status} />
+      </div>
+      {error && <InlineNotice tone="error">{error}</InlineNotice>}
+      {notice && <InlineNotice tone="success">{notice}</InlineNotice>}
+      {issue.status === "rejected" && issue.rejectionReason && (
+        <InlineNotice tone="error">Rejection reason: {issue.rejectionReason}</InlineNotice>
+      )}
+      <div className="toolbar-actions">
+        <button
+          className={`admin-button ${previewMode === "web" ? "primary" : "secondary"}`}
+          onClick={() => setPreviewMode("web")}
+        >
+          Web preview
+        </button>
+        <button
+          className={`admin-button ${previewMode === "email" ? "primary" : "secondary"}`}
+          onClick={() => setPreviewMode("email")}
+        >
+          Email preview
+        </button>
+      </div>
+      {issue.sips.map((sip) => (
+        <section className="panel-card issue-sip-card" key={sip.id}>
+          <div className="editor-title-row">
+            <div>
+              <p className="eyebrow">
+                SIP {sip.order + 1} · VERSION {sip.version}
+              </p>
+              <h2>{sip.title}</h2>
+            </div>
+            <StatusPill status={sip.status} />
+          </div>
+          {sip.qualityIssues.length > 0 && (
+            <div className="quality-notes">
+              <strong>Review flags</strong>
+              <ul>
+                {sip.qualityIssues.map((flag, index) => (
+                  <li key={`${flag.code}-${index}`}>{flag.message}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {editable ? (
+            <>
+              <label className="field-label">
+                Section title
+                <input
+                  value={drafts[sip.id]?.title ?? sip.title}
+                  onChange={(event) =>
+                    setDrafts((current) => ({
+                      ...current,
+                      [sip.id]: { ...current[sip.id]!, title: event.target.value },
+                    }))
+                  }
+                />
+              </label>
+              <label className="field-label">
+                Content
+                <textarea
+                  rows={10}
+                  value={drafts[sip.id]?.content ?? sip.content}
+                  onChange={(event) =>
+                    setDrafts((current) => ({
+                      ...current,
+                      [sip.id]: { ...current[sip.id]!, content: event.target.value },
+                    }))
+                  }
+                />
+              </label>
+              <button
+                className="admin-button secondary"
+                disabled={Boolean(busy)}
+                onClick={() => void saveSip(sip)}
+              >
+                {busy === sip.id ? "Saving…" : "Save edit"}
+              </button>
+            </>
+          ) : (
+            <article className={`issue-preview ${previewMode}`}>
+              <h3>{sip.title}</h3>
+              <pre>{sip.content}</pre>
+            </article>
+          )}
+          <details className="receipt-list">
+            <summary>Receipts ({sip.receipts.length})</summary>
+            {sip.receipts.length ? (
+              sip.receipts.map((receipt) => (
+                <article key={receipt.url}>
+                  <a href={receipt.url} target="_blank" rel="noreferrer">
+                    {receipt.title || receipt.url}
+                  </a>
+                  <small>
+                    {receipt.sourceName} · {receipt.sourceType} ·{" "}
+                    {receipt.publishedAt
+                      ? dateLabel(receipt.publishedAt)
+                      : `retrieved ${dateLabel(receipt.retrievedAt)}`}{" "}
+                    · {receipt.verificationStatus}
+                  </small>
+                  <p>{receipt.snippet}</p>
+                </article>
+              ))
+            ) : (
+              <p>No source Receipts were saved for this Sip.</p>
+            )}
+          </details>
+          <details className="version-history">
+            <summary>Version history ({sip.versions.length})</summary>
+            {sip.versions.map((version) => (
+              <article key={version.version}>
+                <strong>Version {version.version}</strong>
+                <small>
+                  {version.reason} · {dateLabel(version.createdAt)}
+                </small>
+                <p>{version.title}</p>
+                <pre>{version.content}</pre>
+              </article>
+            ))}
+          </details>
+        </section>
+      ))}
+      {editable && (
+        <div className="toolbar-actions issue-decisions">
+          <button
+            className="admin-button danger-quiet"
+            disabled={Boolean(busy)}
+            onClick={() => void decide("reject")}
+          >
+            Reject issue
+          </button>
+          <button
+            className="admin-button primary"
+            disabled={Boolean(busy) || issue.failedSipCount > 0 || issue.sips.length === 0}
+            onClick={() => void decide("approve")}
+          >
+            {busy === "approve" ? "Approving…" : "Approve Tea"}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 

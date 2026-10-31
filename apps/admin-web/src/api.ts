@@ -113,3 +113,52 @@ export interface ConciergeSession {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface IssueSummary {
+  id: string;
+  teaRoomId: string;
+  teaRoomName: string;
+  title: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  sipCount: number;
+  failedSipCount: number;
+}
+export interface IssueReceipt {
+  url: string;
+  title: string;
+  sourceName: string;
+  publishedAt?: string;
+  retrievedAt: string;
+  snippet: string;
+  sourceType: string;
+  verificationStatus: string;
+}
+export interface IssueSip {
+  id: string;
+  sipId: string;
+  title: string;
+  description: string;
+  order: number;
+  status: string;
+  content: string;
+  qualityIssues: Array<{ code: string; message: string }>;
+  version: number;
+  items: unknown[];
+  receipts: IssueReceipt[];
+  versions: Array<{
+    version: number;
+    title: string;
+    content: string;
+    changedBy: string | null;
+    reason: string;
+    createdAt: string;
+  }>;
+}
+export interface IssueDetail extends IssueSummary {
+  sips: IssueSip[];
+  approvedAt?: string;
+  rejectedAt?: string;
+  rejectionReason?: string;
+}
