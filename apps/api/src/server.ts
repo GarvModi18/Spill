@@ -1,4 +1,5 @@
 import { parseEnvironment, createLogger } from "@spill/shared";
+import { MongoAuthStore } from "./auth/mongo-store.js";
 import { connectToDatabase } from "./database.js";
 import { createApp } from "./app.js";
 
@@ -7,7 +8,9 @@ const logger = createLogger("api", env.LOG_LEVEL);
 
 try {
   const database = await connectToDatabase(env.MONGODB_URI);
-  const server = createApp(database).listen(env.PORT, () => {
+  const authStore = new MongoAuthStore(database.db());
+  await authStore.createIndexes();
+  const server = createApp(database, authStore, env).listen(env.PORT, () => {
     logger.info("API listening", { port: env.PORT, environment: env.NODE_ENV });
   });
 

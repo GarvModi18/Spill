@@ -4,6 +4,19 @@ export type { Environment } from "./env.js";
 export { createLogger } from "./logger.js";
 export type { LogLevel } from "./logger.js";
 
+export const userRoleSchema = z.enum(["reader", "admin"]);
+export const registerSchema = z.strictObject({
+  name: z.string().trim().min(1).max(80),
+  email: z.email().trim().toLowerCase(),
+  password: z.string().min(12).max(128),
+});
+export const loginSchema = z.strictObject({
+  email: z.email().trim().toLowerCase(),
+  password: z.string().min(1).max(128),
+});
+
+export type UserRole = z.infer<typeof userRoleSchema>;
+
 export const teaRoomFrequencySchema = z.enum(["daily", "weekly", "monthly"]);
 
 export const teaRoomSchema = z.object({
