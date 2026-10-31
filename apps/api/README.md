@@ -25,3 +25,9 @@ Email verification and password reset require an email provider and are not part
 - Authenticated readers can manage subscriptions via `POST`/`DELETE /api/v1/tea-rooms/:id/subscribe` and pause/resume endpoints.
 - `GET /api/v1/users/me/subscriptions` and `/api/v1/users/me/dashboard` return the reader’s rooms, recent Teas, and scheduled Teas.
 - `PATCH /api/v1/users/me` updates the reader name and email delivery preferences; email address changes are not accepted.
+
+## Tea Concierge (Phase 5)
+
+The admin-only `/api/v1/admin/concierge` routes create and list conversation sessions, return a user's conversation, accept messages, and confirm or dismiss a pending configuration proposal. Tea Concierge can propose Tea Room and Sip create/update/duplicate/delete operations. The API validates each proposal, shows a structured preview, and writes it through the existing `AdminStore` only after explicit confirmation. Proposal claims are atomic so a confirmation cannot be applied twice.
+
+`GROQ_API_KEY` and `GROQ_MODEL` enable structured response drafting. Without both values, saved conversations remain available and message requests return `503`. MongoDB stores the conversation messages and pending proposal; a MongoDB-backed LangGraph checkpointer stores graph state. The Concierge does not generate issues, approve content, schedule delivery, or send email.

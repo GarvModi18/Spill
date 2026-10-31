@@ -11,6 +11,7 @@ import {
   type SchedulePoint,
 } from "./api";
 import { useAuth } from "./auth";
+import { ConciergePage } from "./concierge";
 
 const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const SOURCE_TYPES = ["web_search", "rss", "github", "hacker_news", "hugging_face"] as const;
@@ -132,6 +133,9 @@ function AdminFrame({ children }: { children: ReactNode }) {
           <NavLink to="/tea-rooms">
             <span>◉</span> Tea Rooms
           </NavLink>
+          <NavLink to="/concierge">
+            <span>✳</span> Tea Concierge
+          </NavLink>
         </nav>
         <div className="sidebar-bottom">
           <div className="curator-avatar">{user?.name.slice(0, 1).toUpperCase()}</div>
@@ -173,6 +177,7 @@ function AdminRoutes() {
       <Route path="/tea-rooms" element={<TeaRoomsPage />} />
       <Route path="/tea-rooms/new" element={<TeaRoomEditorPage />} />
       <Route path="/tea-rooms/:id" element={<TeaRoomEditorPage />} />
+      <Route path="/concierge" element={<ConciergePage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

@@ -12,6 +12,9 @@ import type { ReaderStore } from "./reader/types.js";
 import { createAdminRouter } from "./admin/routes.js";
 import { MongoAdminStore } from "./admin/mongo-store.js";
 import type { AdminStore } from "./admin/types.js";
+import type { ConciergeGraph } from "@spill/ai";
+import { MongoConciergeStore } from "./concierge/mongo-store.js";
+import type { ConciergeStore } from "./concierge/types.js";
 
 const logger = createLogger("api");
 
@@ -21,6 +24,8 @@ export function createApp(
   environment: Environment = parseEnvironment(),
   readerStore?: ReaderStore,
   adminStore?: AdminStore,
+  conciergeStore?: ConciergeStore,
+  conciergeGraph: ConciergeGraph | null = null,
 ): Express {
   const app = express();
   app.disable("x-powered-by");
@@ -40,8 +45,18 @@ export function createApp(
     app.use("/api/v1", createReaderRouter(resolvedReaderStore, resolvedAuthStore));
   }
   const resolvedAdminStore = adminStore ?? (database ? new MongoAdminStore(database.db()) : null);
+  const resolvedConciergeStore =
+    conciergeStore ?? (database ? new MongoConciergeStore(database.db()) : null);
   if (resolvedAdminStore && resolvedAuthStore) {
-    app.use("/api/v1/admin", createAdminRouter(resolvedAdminStore, resolvedAuthStore));
+    app.use(
+      "/api/v1/admin",
+      createAdminRouter(
+        resolvedAdminStore,
+        resolvedAuthStore,
+        resolvedConciergeStore,
+        conciergeGraph,
+      ),
+    );
   }
 
   app.get("/health/live", (_request, response) => {

@@ -42,7 +42,7 @@ scripts/        Development and maintenance scripts
 4. Install the workspace dependencies with `npm ci`.
 5. Use the Phase 1 foundation and follow the next development phase in `PROJECT_SPEC.md` when you are ready to continue.
 
-The repository includes the Phase 1 foundation, Phase 2 reader/admin authentication, the Phase 3 Reader App, and the Phase 4 Admin Studio for managing Tea Rooms and configuring Sips. Later AI generation and delivery phases are not included; no credentials or third-party API access are assumed.
+The repository includes Phases 1–4 and the Phase 5 Tea Concierge configuration workflow. The Concierge drafts Tea Room and Sip proposals and saves them only after explicit admin confirmation. Later research, generation, issue editing, and delivery phases are not included. Configure `GROQ_API_KEY` and `GROQ_MODEL` to enable live Concierge responses; tests use mock models.
 
 ## Development
 

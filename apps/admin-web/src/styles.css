@@ -1676,3 +1676,321 @@ select:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+.concierge-page {
+  max-width: 1440px;
+}
+
+.concierge-config-note {
+  margin: 0 0 22px;
+  padding: 14px 18px;
+  border: 1px solid #e9c98b;
+  border-radius: 12px;
+  background: #fff9ed;
+  color: #75521a;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.concierge-config-note code {
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: #f2e6ce;
+}
+
+.concierge-layout {
+  display: grid;
+  grid-template-columns: minmax(210px, 270px) minmax(0, 1fr);
+  min-height: min(680px, calc(100vh - 245px));
+  overflow: hidden;
+  border: 1px solid var(--line, #e9e4da);
+  border-radius: 18px;
+  background: #fffefa;
+  box-shadow: 0 14px 40px #3027190d;
+}
+
+.concierge-history {
+  padding: 22px 14px;
+  border-right: 1px solid var(--line, #e9e4da);
+  background: #faf8f3;
+}
+
+.concierge-history > .eyebrow {
+  padding: 0 10px;
+}
+
+.conversation-link {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 12px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.conversation-link:hover,
+.conversation-link.selected {
+  background: #f0ede5;
+}
+
+.conversation-link b {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conversation-link small,
+.concierge-chat-head small {
+  color: #817b6e;
+  font-size: 11px;
+}
+
+.empty-copy {
+  padding: 0 10px;
+  color: #817b6e;
+  font-size: 13px;
+}
+
+.concierge-chat {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.concierge-chat-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 17px 22px;
+  border-bottom: 1px solid var(--line, #e9e4da);
+}
+
+.concierge-avatar {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 12px;
+  background: #e7eddb;
+  color: #375133;
+  font-size: 20px;
+}
+
+.concierge-chat-head div {
+  display: grid;
+  gap: 3px;
+}
+
+.concierge-messages {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 14px;
+  overflow: auto;
+  padding: 24px clamp(18px, 4vw, 42px);
+}
+
+.concierge-welcome {
+  display: flex;
+  max-width: 450px;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  align-self: center;
+}
+
+.concierge-welcome > span {
+  color: #83926b;
+  font-size: 30px;
+}
+
+.concierge-welcome h2 {
+  margin: 12px 0 6px;
+  color: #25271f;
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 30px;
+  font-weight: 500;
+}
+
+.concierge-welcome p {
+  margin: 0;
+  color: #777265;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.concierge-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.concierge-prompts button {
+  padding: 8px 11px;
+  border: 1px solid #e5e0d5;
+  border-radius: 999px;
+  background: #fffefa;
+  color: #3e4936;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.chat-message {
+  max-width: min(78%, 610px);
+  padding: 12px 15px;
+  border-radius: 13px;
+  background: #f5f3ed;
+  color: #39382f;
+}
+
+.chat-message.user {
+  align-self: flex-end;
+  background: #e7eddb;
+}
+
+.chat-message small {
+  color: #777265;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.chat-message p {
+  margin: 5px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.proposal-card {
+  max-width: min(90%, 650px);
+  align-self: flex-start;
+  padding: 18px;
+  border: 1px solid #ced9bd;
+  border-radius: 14px;
+  background: #f8fbf3;
+}
+
+.proposal-card > .eyebrow {
+  margin: 0 0 8px;
+  color: #526844;
+}
+
+.proposal-card > p:not(.eyebrow) {
+  margin: 0;
+  color: #343b2d;
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.proposal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.proposal-status {
+  display: inline-block;
+  margin-top: 14px;
+  color: #526844;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.proposal-status.rejected {
+  color: #817b6e;
+}
+
+.concierge-composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin: 0 22px;
+  padding: 10px;
+  border: 1px solid #e5e0d5;
+  border-radius: 13px;
+  background: #fff;
+}
+
+.concierge-composer textarea {
+  width: 100%;
+  min-height: 46px;
+  max-height: 160px;
+  resize: vertical;
+  border: 0;
+  outline: 0;
+  color: #34342e;
+  font: inherit;
+  font-size: 14px;
+}
+
+.concierge-composer textarea:disabled {
+  background: transparent;
+}
+
+.concierge-composer .admin-button {
+  min-height: 42px;
+  flex: 0 0 auto;
+}
+
+.concierge-footnote {
+  display: block;
+  padding: 10px 22px 15px;
+  color: #898375;
+  font-size: 11px;
+  text-align: center;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+@media (max-width: 760px) {
+  .concierge-layout {
+    grid-template-columns: 1fr;
+    min-height: 690px;
+  }
+
+  .concierge-history {
+    display: flex;
+    max-height: 115px;
+    gap: 5px;
+    overflow: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line, #e9e4da);
+  }
+
+  .concierge-history > .eyebrow {
+    display: none;
+  }
+
+  .conversation-link {
+    width: 180px;
+    min-width: 180px;
+    align-self: flex-start;
+  }
+
+  .chat-message,
+  .proposal-card {
+    max-width: 94%;
+  }
+}

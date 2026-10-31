@@ -10,6 +10,9 @@ import type { Request } from "express";
 import { authenticate, requireRole } from "../auth/middleware.js";
 import type { AuthStore } from "../auth/types.js";
 import { AdminStoreError, type AdminStore } from "./types.js";
+import type { ConciergeGraph } from "@spill/ai";
+import { createConciergeRouter } from "../concierge/routes.js";
+import type { ConciergeStore } from "../concierge/types.js";
 
 function respondToError(
   error: unknown,
@@ -34,9 +37,18 @@ function routeParam(request: Request, key: string): string {
   return typeof value === "string" ? value : "";
 }
 
-export function createAdminRouter(store: AdminStore, authStore: AuthStore) {
+export function createAdminRouter(
+  store: AdminStore,
+  authStore: AuthStore,
+  conciergeStore: ConciergeStore | null = null,
+  conciergeGraph: ConciergeGraph | null = null,
+) {
   const router = Router();
   router.use(authenticate(authStore), requireRole("admin"));
+
+  if (conciergeStore) {
+    router.use("/concierge", createConciergeRouter(conciergeStore, store, conciergeGraph));
+  }
 
   router.get("/dashboard", async (_request, response, next) => {
     try {

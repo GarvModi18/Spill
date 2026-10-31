@@ -93,3 +93,23 @@ export interface AdminDashboard {
   awaitingApproval: number;
   generationFailures: number;
 }
+
+export interface ConciergeMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  createdAt: string;
+}
+
+export interface ConciergeSession {
+  threadId: string;
+  title: string;
+  messages: ConciergeMessage[];
+  pendingProposal: {
+    id: string;
+    preview: string;
+    status: "pending" | "applying" | "confirmed" | "rejected";
+  } | null;
+  createdAt: string;
+  updatedAt: string;
+}

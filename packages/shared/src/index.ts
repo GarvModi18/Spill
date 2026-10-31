@@ -173,6 +173,7 @@ export const adminTeaRoomSchema = adminTeaRoomBaseSchema.superRefine((room, cont
 export const adminTeaRoomPatchSchema = adminTeaRoomBaseSchema
   .partial()
   .refine((value) => Object.keys(value).length > 0, "At least one Tea Room field is required");
+const adminTeaRoomPatchBaseSchema = adminTeaRoomBaseSchema.partial();
 export type AdminTeaRoom = z.infer<typeof adminTeaRoomBaseSchema>;
 
 export const researchSourceTypeSchema = researchSourceSchema.shape.type;
@@ -208,3 +209,70 @@ export const sipConfigPatchSchema = sipConfigSchema
   .omit({ order: true })
   .partial()
   .refine((value) => Object.keys(value).length > 0, "At least one Sip field is required");
+const sipConfigPatchBaseSchema = sipConfigSchema.omit({ order: true }).partial();
+
+export const conciergeMessageSchema = z.strictObject({
+  message: z.string().trim().min(1).max(4000),
+});
+
+export const conciergeProposalSchema = z.discriminatedUnion("kind", [
+  z.strictObject({ kind: z.literal("create_tea_room"), config: adminTeaRoomSchema }),
+  z.strictObject({
+    kind: z.literal("update_tea_room"),
+    teaRoomId: z.string().min(1),
+    changes: adminTeaRoomPatchSchema,
+  }),
+  z.strictObject({
+    kind: z.literal("create_sip"),
+    teaRoomId: z.string().min(1),
+    sip: sipConfigCreateSchema,
+  }),
+  z.strictObject({
+    kind: z.literal("update_sip"),
+    sipId: z.string().min(1),
+    changes: sipConfigPatchSchema,
+  }),
+  z.strictObject({ kind: z.literal("duplicate_sip"), sipId: z.string().min(1) }),
+  z.strictObject({ kind: z.literal("delete_sip"), sipId: z.string().min(1) }),
+]);
+export type ConciergeProposal = z.infer<typeof conciergeProposalSchema>;
+
+// The model-facing schema omits cross-field refinements; the graph and API
+// validate the extracted proposal against conciergeProposalSchema afterward.
+export const conciergeProposalDraftSchema = z.discriminatedUnion("kind", [
+  z.strictObject({ kind: z.literal("create_tea_room"), config: adminTeaRoomBaseSchema }),
+  z.strictObject({
+    kind: z.literal("update_tea_room"),
+    teaRoomId: z.string().min(1),
+    changes: adminTeaRoomPatchBaseSchema,
+  }),
+  z.strictObject({
+    kind: z.literal("create_sip"),
+    teaRoomId: z.string().min(1),
+    sip: sipConfigCreateSchema,
+  }),
+  z.strictObject({
+    kind: z.literal("update_sip"),
+    sipId: z.string().min(1),
+    changes: sipConfigPatchBaseSchema,
+  }),
+  z.strictObject({ kind: z.literal("duplicate_sip"), sipId: z.string().min(1) }),
+  z.strictObject({ kind: z.literal("delete_sip"), sipId: z.string().min(1) }),
+]);
+export const conciergeDraftReplySchema = z.strictObject({
+  intent: z.enum(["configuration", "question", "unsupported"]),
+  assistantMessage: z.string().trim().min(1).max(2000),
+  proposal: conciergeProposalDraftSchema.optional(),
+});
+
+export const conciergeReplySchema = z
+  .strictObject({
+    intent: z.enum(["configuration", "question", "unsupported"]),
+    assistantMessage: z.string().trim().min(1).max(2000),
+    proposal: conciergeProposalSchema.optional(),
+  })
+  .refine(
+    (reply) => reply.intent === "configuration" || reply.proposal === undefined,
+    "Only configuration intents may include a proposal",
+  );
+export type ConciergeReply = z.infer<typeof conciergeReplySchema>;

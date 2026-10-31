@@ -31,7 +31,13 @@ Validation commands: `npm run format:check`, `npm run lint`, `npm run typecheck`
 
 ## Phase 4 implementation record
 
-Phase 4 delivers the admin-only Brew House dashboard, Tea Room management, schedule and research defaults, public preview links, and a configurable Sip builder with create, edit, duplicate, delete, and reorder actions. The API validates schedules and time zones, requires at least one Sip before activation, enforces Tea Room status transitions, and records configuration changes in the audit log. Admin routes use the Phase 2 session and role checks. Generation, concierge, issue editing, and delivery remain later phases.
+Phase 4 delivers the admin-only Brew House dashboard, Tea Room management, schedule and research defaults, public preview links, and a configurable Sip builder with create, edit, duplicate, delete, and reorder actions. The API validates schedules and time zones, requires at least one Sip before activation, enforces Tea Room status transitions, and records configuration changes in the audit log. Admin routes use the Phase 2 session and role checks. Issue editing and delivery remain later phases.
+
+Validation commands: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build`.
+
+## Phase 5 implementation record
+
+Phase 5 adds the Tea Concierge configuration graph, structured Groq adapter, MongoDB conversation sessions and graph checkpoints, admin-only message APIs, and the Admin Studio chat UI. The graph can propose Tea Room and Sip creation, updates, duplication, and removal. Shared schemas validate proposals; the API displays a field-level preview and applies configuration only after an authenticated admin confirms. Proposal claims prevent duplicate confirmation writes. Issue generation, approval, scheduling, and delivery remain later phases. Live responses require `GROQ_API_KEY` and `GROQ_MODEL`; automated tests use mock models.
 
 Validation commands: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build`.
 
