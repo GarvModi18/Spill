@@ -39,29 +39,43 @@ scripts/        Development and maintenance scripts
 1. Install the required runtimes: Node.js LTS, npm, and Docker (for local MongoDB and Redis).
 2. Copy `.env.example` to `.env` and fill in local values.
 3. Review `PROJECT_SPEC.md` before implementation.
-4. Add workspace/package configuration and application dependencies in the first development phase.
-5. Start with the foundation phase: TypeScript configuration, linting, formatting, environment validation, database connection, logging, and health checks.
+4. Install the workspace dependencies with `npm ci`.
+5. Use the Phase 1 foundation and follow the next development phase in `PROJECT_SPEC.md` when you are ready to continue.
 
-This repository is an initial scaffold. It intentionally does not include generated application code, credentials, or assumed third-party API access.
+The repository includes the Phase 1 foundation: npm workspaces, shared TypeScript/Zod contracts, environment validation, structured logging, MongoDB connectivity, API health checks, and CI checks. Feature applications remain scaffolds; no credentials or third-party API access are assumed.
+
+## Development
+
+Use Node.js 20 or later and npm 10 or later.
+
+```sh
+npm ci
+Copy-Item .env.example .env # PowerShell; on macOS/Linux use: cp .env.example .env
+npm run build
+npm test
+npm run dev:api
+```
+
+The API starts after MongoDB responds to a ping. Set `MONGODB_URI` in `.env` for a local or hosted MongoDB instance. `/health/live` reports process liveness; `/health/ready` also checks MongoDB. CI runs formatting, lint, type checks, tests, and builds.
 
 ## Product vocabulary
 
-| Conventional concept | Spill term |
-|---|---|
-| Newsletter channel | Tea Room |
-| Newsletter issue | Tea |
-| Newsletter section | Sip |
-| Subscriber | Tea Lover |
-| Admin workspace | Brew House |
-| Admin assistant | Tea Concierge |
-| Research sources | Receipts |
-| Fact verification | Receipt Check |
-| Generation | Brew |
-| Regeneration | Rebrew |
-| Review | Taste Test |
-| Approval | Seal of Approval |
-| Delivery | Serving |
-| Archive | Tea Cellar |
+| Conventional concept | Spill term       |
+| -------------------- | ---------------- |
+| Newsletter channel   | Tea Room         |
+| Newsletter issue     | Tea              |
+| Newsletter section   | Sip              |
+| Subscriber           | Tea Lover        |
+| Admin workspace      | Brew House       |
+| Admin assistant      | Tea Concierge    |
+| Research sources     | Receipts         |
+| Fact verification    | Receipt Check    |
+| Generation           | Brew             |
+| Regeneration         | Rebrew           |
+| Review               | Taste Test       |
+| Approval             | Seal of Approval |
+| Delivery             | Serving          |
+| Archive              | Tea Cellar       |
 
 ## Product specification
 
