@@ -24,7 +24,7 @@ interface TeaRoom {
   coverImage?: string;
   sipCount: number;
   sips?: Array<{ title: string; description: string; order: number }>;
-  schedule?: { deliveryDay?: string; deliveryTime?: string };
+  schedule?: { delivery: { time: string; weekday?: string; dayOfMonth?: number } };
 }
 
 interface TeaSummary {
@@ -510,10 +510,16 @@ function TeaRoomPage() {
         </div>
         <div className="detail-facts">
           <span>
-            <b>{room.schedule?.deliveryDay ?? room.frequency}</b> next pour
+            <b>
+              {room.schedule?.delivery.weekday ??
+                (room.schedule?.delivery.dayOfMonth
+                  ? `Day ${room.schedule.delivery.dayOfMonth}`
+                  : room.frequency)}
+            </b>{" "}
+            next pour
           </span>
           <span>
-            <b>{room.schedule?.deliveryTime ?? "Local time"}</b> {room.timezone}
+            <b>{room.schedule?.delivery.time ?? "Local time"}</b> {room.timezone}
           </span>
           <span>
             <b>{room.sipCount}</b> Sips inside

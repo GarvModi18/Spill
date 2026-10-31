@@ -19,6 +19,7 @@
     "format": "prettier --write .",
     "test": "npm run build && npm run test --workspaces --if-present",
     "dev:reader": "npm run dev -w @spill/reader-web",
+    "dev:admin": "npm run dev -w @spill/admin-web",
     "dev:api": "npm run dev -w @spill/api",
     "start:api": "npm run start -w @spill/api"
   },

@@ -9,6 +9,9 @@ import type { AuthStore } from "./auth/types.js";
 import { createReaderRouter } from "./reader/routes.js";
 import { MongoReaderStore } from "./reader/mongo-store.js";
 import type { ReaderStore } from "./reader/types.js";
+import { createAdminRouter } from "./admin/routes.js";
+import { MongoAdminStore } from "./admin/mongo-store.js";
+import type { AdminStore } from "./admin/types.js";
 
 const logger = createLogger("api");
 
@@ -17,6 +20,7 @@ export function createApp(
   authStore?: AuthStore,
   environment: Environment = parseEnvironment(),
   readerStore?: ReaderStore,
+  adminStore?: AdminStore,
 ): Express {
   const app = express();
   app.disable("x-powered-by");
@@ -34,6 +38,10 @@ export function createApp(
     readerStore ?? (database ? new MongoReaderStore(database.db()) : null);
   if (resolvedReaderStore && resolvedAuthStore) {
     app.use("/api/v1", createReaderRouter(resolvedReaderStore, resolvedAuthStore));
+  }
+  const resolvedAdminStore = adminStore ?? (database ? new MongoAdminStore(database.db()) : null);
+  if (resolvedAdminStore && resolvedAuthStore) {
+    app.use("/api/v1/admin", createAdminRouter(resolvedAdminStore, resolvedAuthStore));
   }
 
   app.get("/health/live", (_request, response) => {

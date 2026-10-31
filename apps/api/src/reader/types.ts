@@ -13,7 +13,9 @@ export interface TeaRoomSummary {
 
 export interface TeaRoomDetails extends TeaRoomSummary {
   sips: Array<{ title: string; description: string; order: number }>;
-  schedule?: { deliveryDay?: string; deliveryTime?: string };
+  schedule?: {
+    delivery: { time: string; weekday?: string; dayOfMonth?: number };
+  };
 }
 
 export interface TeaRoomPage {

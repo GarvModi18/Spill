@@ -12,7 +12,7 @@ export default tseslint.config(
     rules: { "no-console": "off" },
   },
   {
-    files: ["apps/reader-web/**/*.{ts,tsx}"],
+    files: ["apps/reader-web/**/*.{ts,tsx}", "apps/admin-web/**/*.{ts,tsx}"],
     languageOptions: { globals: { ...globals.browser, ...globals.es2022 } },
   },
 );

@@ -21,7 +21,9 @@ interface TeaRoomDocument {
   isPublic: boolean;
   status: string;
   coverImage?: string;
-  schedule?: { deliveryDay?: string; deliveryTime?: string };
+  schedule?: {
+    delivery: { time: string; weekday?: string; dayOfMonth?: number };
+  };
   sipCount?: number;
 }
 

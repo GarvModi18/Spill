@@ -29,4 +29,10 @@ Phase 3 delivers the React Reader App and reader API for public Tea Room discove
 
 Validation commands: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build`.
 
+## Phase 4 implementation record
+
+Phase 4 delivers the admin-only Brew House dashboard, Tea Room management, schedule and research defaults, public preview links, and a configurable Sip builder with create, edit, duplicate, delete, and reorder actions. The API validates schedules and time zones, requires at least one Sip before activation, enforces Tea Room status transitions, and records configuration changes in the audit log. Admin routes use the Phase 2 session and role checks. Generation, concierge, issue editing, and delivery remain later phases.
+
+Validation commands: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build`.
+
 Complete and verify one phase at a time. See `PROJECT_SPEC.md` for phase details and acceptance criteria.
