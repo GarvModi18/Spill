@@ -11,4 +11,8 @@ export default tseslint.config(
     languageOptions: { globals: { ...globals.node, ...globals.es2022 } },
     rules: { "no-console": "off" },
   },
+  {
+    files: ["apps/reader-web/**/*.{ts,tsx}"],
+    languageOptions: { globals: { ...globals.browser, ...globals.es2022 } },
+  },
 );

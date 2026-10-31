@@ -1,5 +1,5 @@
 import { ObjectId, type Db } from "mongodb";
-import type { UserRole } from "@spill/shared";
+import type { EmailPreferences, UserRole } from "@spill/shared";
 import type { AuthStore, AuthUser, StoredUser } from "./types.js";
 
 interface UserDocument {
@@ -8,6 +8,7 @@ interface UserDocument {
   email: string;
   passwordHash: string;
   role: UserRole;
+  emailPreferences?: EmailPreferences;
   createdAt: Date;
 }
 
@@ -19,11 +20,16 @@ interface SessionDocument {
 }
 
 function publicUser(document: UserDocument): AuthUser {
+  const preferences = document.emailPreferences;
   return {
     id: document._id.toHexString(),
     name: document.name,
     email: document.email,
     role: document.role,
+    emailPreferences: {
+      teaUpdates: preferences?.teaUpdates ?? true,
+      productUpdates: preferences?.productUpdates ?? false,
+    },
     createdAt: document.createdAt,
   };
 }
@@ -80,5 +86,30 @@ export class MongoAuthStore implements AuthStore {
 
   async deleteSession(tokenHash: string): Promise<void> {
     await this.database.collection<SessionDocument>("sessions").deleteOne({ _id: tokenHash });
+  }
+
+  async updateProfile(
+    id: string,
+    updates: {
+      name?: string | undefined;
+      emailPreferences?: Partial<EmailPreferences> | undefined;
+    },
+  ): Promise<AuthUser | null> {
+    if (!ObjectId.isValid(id)) return null;
+    const set: Record<string, unknown> = { updatedAt: new Date() };
+    if (updates.name !== undefined) set.name = updates.name;
+    if (updates.emailPreferences) {
+      for (const [key, value] of Object.entries(updates.emailPreferences)) {
+        set[`emailPreferences.${key}`] = value;
+      }
+    }
+    const user = await this.database
+      .collection<UserDocument>("users")
+      .findOneAndUpdate(
+        { _id: new ObjectId(id) },
+        { $set: set },
+        { returnDocument: "after", includeResultMetadata: false },
+      );
+    return user ? publicUser(user) : null;
   }
 }

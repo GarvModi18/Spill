@@ -31,6 +31,7 @@ try {
     email: credentials.data.BOOTSTRAP_ADMIN_EMAIL,
     passwordHash: await hashPassword(credentials.data.BOOTSTRAP_ADMIN_PASSWORD),
     role: "admin",
+    emailPreferences: { teaUpdates: true, productUpdates: false },
     createdAt: new Date(),
   });
   process.stdout.write(`Created admin account ${admin.email} (${admin.id}).\n`);

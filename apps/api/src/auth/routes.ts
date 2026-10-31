@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { Router } from "express";
 import { rateLimit } from "express-rate-limit";
-import { loginSchema, registerSchema, createLogger } from "@spill/shared";
+import { loginSchema, profileUpdateSchema, registerSchema, createLogger } from "@spill/shared";
 import type { Environment } from "@spill/shared";
 import { hashPassword, verifyPassword } from "./password.js";
 import {
@@ -42,6 +42,7 @@ function publicUser(user: AuthUser) {
     name: user.name,
     email: user.email,
     role: user.role,
+    emailPreferences: user.emailPreferences,
     createdAt: user.createdAt,
   };
 }
@@ -70,6 +71,7 @@ export function createAuthRouter(store: AuthStore, environment: Environment) {
         email: parsed.data.email,
         passwordHash: await hashPassword(parsed.data.password),
         role: "reader",
+        emailPreferences: { teaUpdates: true, productUpdates: false },
         createdAt: now,
       });
       const token = randomBytes(32).toString("base64url");
@@ -127,6 +129,39 @@ export function createAuthRouter(store: AuthStore, environment: Environment) {
 
   router.get("/users/me", authenticate(store), (request, response) => {
     response.json({ user: publicUser(request.authUser!) });
+  });
+
+  router.patch("/users/me", authenticate(store), async (request, response, next) => {
+    const parsed = profileUpdateSchema.safeParse(request.body);
+    if (!parsed.success) {
+      response
+        .status(400)
+        .json({ error: "Invalid profile update", details: parsed.error.flatten() });
+      return;
+    }
+    try {
+      const updates: {
+        name?: string;
+        emailPreferences?: { teaUpdates?: boolean; productUpdates?: boolean };
+      } = {};
+      if (parsed.data.name !== undefined) updates.name = parsed.data.name;
+      const preferences: { teaUpdates?: boolean; productUpdates?: boolean } = {};
+      if (parsed.data.emailPreferences?.teaUpdates !== undefined) {
+        preferences.teaUpdates = parsed.data.emailPreferences.teaUpdates;
+      }
+      if (parsed.data.emailPreferences?.productUpdates !== undefined) {
+        preferences.productUpdates = parsed.data.emailPreferences.productUpdates;
+      }
+      if (Object.keys(preferences).length) updates.emailPreferences = preferences;
+      const user = await store.updateProfile(request.authUser!.id, updates);
+      if (!user) {
+        response.status(404).json({ error: "Account not found" });
+        return;
+      }
+      response.json({ user: publicUser(user) });
+    } catch (error) {
+      next(error);
+    }
   });
 
   router.get("/admin/me", authenticate(store), requireRole("admin"), (request, response) => {

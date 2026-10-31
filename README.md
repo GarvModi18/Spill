@@ -42,7 +42,7 @@ scripts/        Development and maintenance scripts
 4. Install the workspace dependencies with `npm ci`.
 5. Use the Phase 1 foundation and follow the next development phase in `PROJECT_SPEC.md` when you are ready to continue.
 
-The repository includes the Phase 1 foundation: npm workspaces, shared TypeScript/Zod contracts, environment validation, structured logging, MongoDB connectivity, API health checks, and CI checks. Feature applications remain scaffolds; no credentials or third-party API access are assumed.
+The repository includes the Phase 1 foundation, Phase 2 reader/admin authentication, and the Phase 3 Reader App for discovering Tea Rooms, following publications, and reading published Teas. The Admin Studio and generation pipeline remain for later phases; no credentials or third-party API access are assumed.
 
 ## Development
 
@@ -54,9 +54,10 @@ Copy-Item .env.example .env # PowerShell; on macOS/Linux use: cp .env.example .e
 npm run build
 npm test
 npm run dev:api
+npm run dev:reader
 ```
 
-The API starts after MongoDB responds to a ping. Set `MONGODB_URI` in `.env` for a local or hosted MongoDB instance. `/health/live` reports process liveness; `/health/ready` also checks MongoDB. CI runs formatting, lint, type checks, tests, and builds.
+The API starts after MongoDB responds to a ping. Set `MONGODB_URI` in `.env` for a local or hosted MongoDB instance. `/health/live` reports process liveness; `/health/ready` also checks MongoDB. The reader app runs at `http://localhost:5173` and proxies API calls to `http://localhost:4000`. CI runs formatting, lint, type checks, tests, and builds.
 
 ## Product vocabulary
 

@@ -12,7 +12,11 @@ class MemoryAuthStore implements AuthStore {
 
   async createUser(user: Omit<StoredUser, "id">): Promise<AuthUser> {
     if (this.users.has(user.email)) throw Object.assign(new Error("duplicate"), { code: 11000 });
-    const record = { ...user, id: `user-${this.users.size + 1}` };
+    const record = {
+      ...user,
+      emailPreferences: user.emailPreferences ?? { teaUpdates: true, productUpdates: false },
+      id: `user-${this.users.size + 1}`,
+    };
     this.users.set(user.email, record);
     return this.publicUser(record);
   }
@@ -38,12 +42,28 @@ class MemoryAuthStore implements AuthStore {
     this.sessions.delete(tokenHash);
   }
 
+  async updateProfile(
+    id: string,
+    updates: {
+      name?: string | undefined;
+      emailPreferences?: Partial<AuthUser["emailPreferences"]> | undefined;
+    },
+  ): Promise<AuthUser | null> {
+    const user = [...this.users.values()].find((candidate) => candidate.id === id);
+    if (!user) return null;
+    if (updates.name) user.name = updates.name;
+    if (updates.emailPreferences)
+      user.emailPreferences = { ...user.emailPreferences, ...updates.emailPreferences };
+    return this.publicUser(user);
+  }
+
   private publicUser(user: StoredUser): AuthUser {
     return {
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
+      emailPreferences: user.emailPreferences,
       createdAt: user.createdAt,
     };
   }
@@ -99,6 +119,7 @@ test("login validates credentials and returns a new session", async () => {
     email: "reader@example.com",
     passwordHash: await hashPassword("correct-horse-battery"),
     role: "reader",
+    emailPreferences: { teaUpdates: true, productUpdates: false },
     createdAt: new Date(),
   });
   const invalid = await request(appFor(store)).post("/api/v1/auth/login").send({
@@ -135,6 +156,31 @@ test("protected profile needs authentication and returns no password data", asyn
   assert.equal(profile.body.user.passwordHash, undefined);
 });
 
+test("profile updates allow name and delivery preferences without changing email or role", async () => {
+  const store = new MemoryAuthStore();
+  const app = appFor(store);
+  const registration = await request(app).post("/api/v1/auth/register").send({
+    name: "A Reader",
+    email: "reader@example.com",
+    password: "correct-horse-battery",
+  });
+  const updated = await request(app)
+    .patch("/api/v1/users/me")
+    .set("Cookie", cookieFrom(registration))
+    .send({ name: "Tea Lover", emailPreferences: { productUpdates: true } });
+  assert.equal(updated.status, 200);
+  assert.equal(updated.body.user.name, "Tea Lover");
+  assert.equal(updated.body.user.email, "reader@example.com");
+  assert.deepEqual(updated.body.user.emailPreferences, { teaUpdates: true, productUpdates: true });
+  assert.equal(updated.body.user.role, "reader");
+
+  const forbidden = await request(app)
+    .patch("/api/v1/users/me")
+    .set("Cookie", cookieFrom(registration))
+    .send({ role: "admin" });
+  assert.equal(forbidden.status, 400);
+});
+
 test("reader sessions cannot access admin routes", async () => {
   const store = new MemoryAuthStore();
   const registration = await request(appFor(store)).post("/api/v1/auth/register").send({
@@ -155,6 +201,7 @@ test("admin sessions can access admin routes and logout revokes the session", as
     email: "admin@example.com",
     passwordHash: await hashPassword("correct-horse-battery"),
     role: "admin",
+    emailPreferences: { teaUpdates: true, productUpdates: false },
     createdAt: new Date(),
   });
   const app = appFor(store);

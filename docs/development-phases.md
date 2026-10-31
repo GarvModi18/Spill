@@ -23,4 +23,10 @@ Phase 2 adds reader registration and login, scrypt password hashing, random hash
 
 Validation commands: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build`.
 
+## Phase 3 implementation record
+
+Phase 3 delivers the React Reader App and reader API for public Tea Room discovery/search, Tea Room details and Sip previews, publication archives/date filters, published Tea reading with Receipts, reader dashboard, subscriptions with pause/resume, and editable profile delivery preferences. Public content queries only return active public rooms and published issues; dashboard upcoming Teas are limited to scheduled issues. Reader routes use the Phase 2 session/role services. The API creates unique subscription and publication lookup indexes.
+
+Validation commands: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build`.
+
 Complete and verify one phase at a time. See `PROJECT_SPEC.md` for phase details and acceptance criteria.
